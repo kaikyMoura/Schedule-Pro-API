@@ -22,7 +22,7 @@ export class AuthGuard implements CanActivate {
     const token = req.headers['authorization']?.replace('Bearer ', '');
 
     if (!token) {
-      throw new UnauthorizedException('Token ausente');
+      throw new UnauthorizedException('Token not provided');
     }
 
     try {

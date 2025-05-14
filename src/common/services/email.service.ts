@@ -1,7 +1,15 @@
-import MailService from '@sendgrid/mail';
+import { Injectable } from '@nestjs/common';
+import * as sgMail from '@sendgrid/mail';
 
-MailService.setApiKey(process.env.SENDGRID_API_KEY as string);
+sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 
+export class MailService {
+  static async send(msg: sgMail.MailDataRequired) {
+    await sgMail.send(msg);
+  }
+}
+
+@Injectable()
 export class EmailService {
   async sendResetPasswordEmail(
     email: string,
