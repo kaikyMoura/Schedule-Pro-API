@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "app/generated/prisma/client"
+}
+
+datasource db {
+  provider = "postgres"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+enum Status {
+  CANCELLED
+  CONFIRMED
+  COMPLETED
+  PENDING
+}
+
+model User {
+  id              String        @id @default(uuid())
+  name            String
+  email           String        @unique
+  password        String        
+  phone           String        @unique
+  photo           String?
+  role            Role
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Customer {
+  id              String        @id @default(uuid())
+  name            String
+  email           String        @unique
+  password        String
+  phone           String        @unique
+  photo           String?
+  appointments    Appointment[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Appointment {
+  id           String       @id @default(uuid())
+  notes        String?
+  date         String
+  time         String
+  status       String
+  price        Float
+  customerId   String
+  customer     Customer     @relation(fields: [customerId], references: [id])
+  /// If null, means "any available staff"
+  staffId      String?
+  staff        Staff?        @relation(fields: [staffId], references: [id])
+  serviceId    String
+  service      ServiceItem      @relation(fields: [serviceId], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model ServiceItem {
+  id              String        @id @default(uuid())
+  type            String
+  price           Float
+  duration        Int
+  availability    Json
+  staffId         String
+  staff           Staff         @relation(fields: [staffId], references: [id])
+  appointments    Appointment[]
+}
+
+model Staff {
+  id              String        @id @default(uuid())
+  name            String
+  email           String        @unique
+  appointments    Appointment[]
+  services        ServiceItem[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
