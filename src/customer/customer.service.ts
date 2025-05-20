@@ -293,9 +293,13 @@ export class CustomerService {
   async resetPassword(
     token: string,
     resetPasswordDto: ChangePasswordDto,
-  ): Promise<void> {
+  ): Promise<boolean> {
     if (!token || !resetPasswordDto.newPassword) {
       throw new MissingRequiredPropertiesException();
+    }
+
+    if (resetPasswordDto.newPassword != resetPasswordDto.confirmNewPassword) {
+      throw new InvalidCredentialsException();
     }
 
     const retrievedCustomer =
@@ -311,6 +315,8 @@ export class CustomerService {
       retrievedCustomer.id,
       hashedNewPassword,
     );
+
+    return true;
   }
 
   /**

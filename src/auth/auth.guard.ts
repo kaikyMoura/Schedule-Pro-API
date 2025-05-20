@@ -10,12 +10,22 @@ import { TokenNotExpiringException } from 'src/common/exceptions/token-not-expir
 import { CustomRequest } from 'src/common/types/custom-request';
 import { AuthService } from './auth.service';
 import { CustomResponse } from 'src/common/types/custom-response';
+import { Reflector } from '@nestjs/core';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly reflector: Reflector,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const isPublic = this.reflector.getAllAndOverride<boolean>('isPublic', [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) return true;
+
     const req = context.switchToHttp().getRequest<CustomRequest>();
     const res = context.switchToHttp().getResponse<CustomResponse>();
 
