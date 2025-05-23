@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { User } from 'prisma/app/generated/prisma/client';
+import { Role, User } from 'prisma/app/generated/prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { BaseUserDto } from './dto/base-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { BaseUserDto } from './dtos/base-user.dto';
+import { UpdateUserDto } from './dtos/update-user.dto';
 
 @Injectable()
 export class UserRepository {
@@ -15,7 +15,14 @@ export class UserRepository {
    * @throws If the User already exists.
    */
   async create(data: BaseUserDto): Promise<User> {
-    const response = await this.prisma.user.create({ data });
+    const response = await this.prisma.user.create({
+      data: {
+        ...data,
+        appointments: undefined,
+        services: undefined,
+        staffAppointments: undefined,
+      },
+    });
     return response;
   }
 
@@ -52,12 +59,71 @@ export class UserRepository {
   }
 
   /**
+   * Retrieves a single User object by its unique phone number.
+   *
+   * @param {string} phone - The phone number of the User to retrieve.
+   *
+   * @returns {Promise<User>} - A promise that resolves to the User object with the given phone number.
+   *
+   * @throws {Prisma.NotFoundError} - Thrown if the User with the given phone number does not exist in the database.
+   */
+
+  async findUniqueByPhone(phone: string): Promise<User> {
+    const data = await this.prisma.user.findUnique({
+      where: { phone: phone },
+    });
+    return data!;
+  }
+
+  /**
    * Retrieves all User objects in the database.
    *
    * @returns {Promise<User[]>} - A promise that resolves to an array of User objects.
    */
   async findMany(): Promise<User[]> {
     return await this.prisma.user.findMany();
+  }
+
+  /**
+   * Retrieves all User objects with a specific role.
+   *
+   * @param {Role} role - The role of the Users to retrieve.
+   *
+   * @returns {Promise<User[]>} - A promise that resolves to an array of User objects with the given role.
+   */
+  async findManyByRole(role: Role): Promise<User[]> {
+    return await this.prisma.user.findMany({
+      where: {
+        role: role,
+      },
+    });
+  }
+
+  /**
+   * Finds the first User with the given id that has an appointment at the given date and time.
+   *
+   * @param {string} id - The id of the User to find.
+   * @param {string} date - The date of the appointment.
+   * @param {string} time - The time of the appointment.
+   *
+   * @returns {Promise<User | null>} - A promise that resolves to the User if found, or `null` if not found.
+   */
+  async findFirst(
+    id: string,
+    date: string,
+    time: string,
+  ): Promise<User | null> {
+    return await this.prisma.user.findFirst({
+      where: {
+        id: id,
+        appointments: {
+          some: {
+            date: date,
+            time: time,
+          },
+        },
+      },
+    });
   }
 
   /**

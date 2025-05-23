@@ -1,0 +1,251 @@
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
+import { ResponseModel } from 'src/common/models/response.model';
+import { BaseUserDto } from 'src/user/dtos/base-user.dto';
+import { UserService } from 'src/user/user.service';
+import { AppointmentRepository } from './appointment.repository';
+import { AppointmentResponseDto } from './dto/appointment-response.dto';
+import { BaseAppointmentDto } from './dto/base-appointment.dto';
+import { CreateAppointmentDto } from './dto/create-appointment.dto';
+import { UpdateAppointmentDto } from './dto/update-appointment.dto';
+
+@Injectable()
+export class AppointmentService {
+  constructor(
+    private readonly appointmentRepository: AppointmentRepository,
+    private readonly userService: UserService,
+  ) {}
+
+  /**
+   * Retrieves all Appointment objects from the database.
+   *
+   * @returns {Promise<ResponseModel<BaseAppointmentDto[], Error>>} - A promise that resolves to a ResponseModel
+   * containing an array of BaseAppointmentDto objects with appointment details, or an error if the operation fails.
+   *
+   * @example
+   * const allAppointments = await appointmentService.retrieveAll();
+   */
+  async retrieveAll(): Promise<BaseAppointmentDto[]> {
+    const appointments = await this.appointmentRepository.findAll();
+
+    return appointments.map((appointment) => ({
+      id: appointment.id,
+      date: appointment.date,
+      time: appointment.time,
+      status: appointment.status,
+      price: appointment.price,
+      notes: appointment.notes!,
+      customerId: appointment.customerId,
+      staffId: appointment.staffId!,
+      serviceId: appointment.serviceId,
+    }));
+  }
+
+  /**
+   * Retrieves a single Appointment object by its unique id.
+   *
+   * @param {string} appointmentId - The id of the Appointment to retrieve.
+   *
+   * @returns {Promise<ResponseModel<Appointment, Error>>} - A promise that resolves to a ResponseModel
+   * with the Appointment object with the given id, or an error if the operation fails.
+   *
+   * @example
+   * const appointment = await appointmentService.retrieveById('1')
+   *
+   * @throws {MissingRequiredPropertiesException} - Thrown if the appointmentId is missing or undefined.
+   * @throws {NotFoundException} - Thrown if the Appointment with the given id does not exist in the database.
+   */
+  async retrieveById(
+    appointmentId: string,
+  ): Promise<ResponseModel<BaseAppointmentDto, Error>> {
+    if (!appointmentId) {
+      throw new MissingRequiredPropertiesException();
+    }
+
+    const retrivedAppointment =
+      await this.appointmentRepository.findUnique(appointmentId);
+
+    if (!retrivedAppointment) {
+      throw new NotFoundException('Appointment not found');
+    }
+
+    return {
+      data: {
+        id: retrivedAppointment.id,
+        date: retrivedAppointment.date,
+        time: retrivedAppointment.time,
+        status: retrivedAppointment.status,
+        price: retrivedAppointment.price,
+        notes: retrivedAppointment.notes!,
+        customerId: retrivedAppointment.customerId,
+        serviceId: retrivedAppointment.serviceId,
+        staffId: retrivedAppointment.staffId!,
+      },
+    };
+  }
+
+  /**
+   * Creates a new Appointment in the database.
+   *
+   * @param {CreateAppointmentDto} appointment - The Appointment data to be inserted.
+   *
+   * @returns {Promise<ResponseModel<AppointmentResponseDto, Error>>} - A promise that resolves to a ResponseModel
+   * with the newly created Appointment object, or an error if the operation fails.
+   *
+   * @example
+   * const newAppointment = await appointmentService.create({
+   *   customerId: '123456789',
+   *   serviceId: '123456789',
+   *   staffId: '123456789',
+   *   date: '2023-01-01',
+   *   time: '09:00',
+   *   notes: 'This is a sample appointment',
+   * })
+   *
+   * @throws {MissingRequiredPropertiesException} - Thrown if the appointment is missing or undefined.
+   * @throws {NotFoundException} - Thrown if the staff with the given id does not exist in the database.
+   * @throws {HttpException} - Thrown if the user with the given id is not a staff.
+   * @throws {BadRequestException} - Thrown if no staff is available at the given time.
+   */
+  async create(
+    appointment: CreateAppointmentDto,
+  ): Promise<ResponseModel<AppointmentResponseDto, Error>> {
+    if (
+      !appointment.customerId ||
+      !appointment.serviceId ||
+      !appointment.staffId ||
+      !appointment.date ||
+      !appointment.time
+    ) {
+      throw new MissingRequiredPropertiesException();
+    }
+
+    let staffName = '';
+    let selectedStaffId = appointment.staffId;
+
+    if (selectedStaffId && selectedStaffId !== 'any') {
+      const staffResponse =
+        await this.userService.retrieveById(selectedStaffId);
+
+      if (!staffResponse) {
+        throw new NotFoundException('Staff not found');
+      }
+
+      const staff = staffResponse;
+
+      if (staff.role !== 'STAFF') {
+        throw new HttpException(
+          'This user is not a staff',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      staffName = staff.name;
+    } else {
+      const availableStaff = await this.findAvailableStaff(
+        appointment.date,
+        appointment.time,
+      );
+
+      if (!availableStaff) {
+        throw new BadRequestException('No staff available at this time.');
+      }
+
+      selectedStaffId = availableStaff.id!;
+      staffName = availableStaff.name;
+    }
+
+    const newAppointment = await this.appointmentRepository.create({
+      ...appointment,
+      staffId: selectedStaffId,
+      status: 'PENDING',
+    });
+
+    return {
+      message: 'User created successfully',
+      data: {
+        notes: newAppointment.notes!,
+        date: newAppointment.date,
+        time: newAppointment.time,
+        status: newAppointment.status,
+        price: newAppointment.price,
+        staffName,
+        serviceName: newAppointment.serviceId,
+      },
+    };
+  }
+
+  /**
+   * Deletes a Appointment from the database.
+   *
+   * @param {string} id - The unique identifier of the Appointment to delete.
+   *
+   * @returns {Promise<void>} - A promise that resolves when the Appointment has been deleted.
+   *
+   * @throws {NotFoundException} - Thrown if the Appointment with the given id does not exist in the database.
+   */
+  async delete(id: string): Promise<void> {
+    if (!(await this.appointmentRepository.findUnique(id))) {
+      throw new NotFoundException('Appointment not found');
+    }
+
+    await this.appointmentRepository.delete(id);
+  }
+
+  /**
+   * Updates a Appointment in the database.
+   *
+   * @param {string} id - The id of the Appointment to update.
+   * @param {UpdateAppointmentDto} updateAppointmentDto - The Appointment data to update. If `undefined`, the Appointment won't be updated.
+   *
+   * @returns {Promise<void>} - A promise that resolves when the Appointment has been updated.
+   *
+   * @throws {NotFoundException} - Thrown if the Appointment with the given id does not exist in the database.
+   */
+  async update(
+    id: string,
+    updateAppointmentDto: UpdateAppointmentDto,
+  ): Promise<void> {
+    if (!(await this.appointmentRepository.findUnique(id))) {
+      throw new NotFoundException('Appointment not found');
+    }
+
+    await this.appointmentRepository.update(id, updateAppointmentDto);
+  }
+
+  /**
+   * Finds the first available staff member for the given date and time.
+   *
+   * @param {string} date - The date of the appointment.
+   * @param {string} time - The time of the appointment.
+   *
+   * @returns {Promise<Omit<BaseUserDto, 'password'> | null>} - A promise that resolves to the first available staff member, or `null` if no staff member is available.
+   */
+  private async findAvailableStaff(
+    date: Date,
+    time: string,
+  ): Promise<Omit<BaseUserDto, 'password'> | null> {
+    const allStaff = await this.userService.retrieveAll();
+
+    if (!allStaff) {
+      return null;
+    }
+
+    for (const staff of allStaff) {
+      const isBooked = await this.appointmentRepository.findFirst(
+        staff.id!,
+        date,
+        time,
+      );
+      if (!isBooked) return staff;
+    }
+
+    return null;
+  }
+}

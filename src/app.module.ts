@@ -6,16 +6,18 @@ import { AppService } from './app.service';
 import { AuthGuard } from './auth/auth.guard';
 import { AuthModule } from './auth/auth.module';
 import { EmailModule } from './common/services/email.module';
-import { CustomerModule } from './customer/customer.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { AppointmentModule } from './appointment/appointment.module';
 import { UserModule } from './user/user.module';
+import { ServiceItemModule } from './serviceItem/service-item.module';
 
 @Module({
   imports: [
     AuthModule,
     PrismaModule,
     UserModule,
-    CustomerModule,
+    AppointmentModule,
+    ServiceItemModule,
     EmailModule,
     ConfigModule.forRoot({
       isGlobal: true,

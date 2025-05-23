@@ -132,17 +132,6 @@ exports.Prisma.UserScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
-exports.Prisma.CustomerScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  email: 'email',
-  password: 'password',
-  phone: 'phone',
-  photo: 'photo',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-};
-
 exports.Prisma.AppointmentScalarFieldEnum = {
   id: 'id',
   notes: 'notes',
@@ -163,13 +152,7 @@ exports.Prisma.ServiceItemScalarFieldEnum = {
   price: 'price',
   duration: 'duration',
   availability: 'availability',
-  staffId: 'staffId'
-};
-
-exports.Prisma.StaffScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  email: 'email',
+  staffId: 'staffId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -200,15 +183,21 @@ exports.Prisma.JsonNullValueFilter = {
 };
 exports.Role = exports.$Enums.Role = {
   ADMIN: 'ADMIN',
-  STAFF: 'STAFF'
+  STAFF: 'STAFF',
+  CUSTOMER: 'CUSTOMER'
+};
+
+exports.Status = exports.$Enums.Status = {
+  CANCELLED: 'CANCELLED',
+  CONFIRMED: 'CONFIRMED',
+  COMPLETED: 'COMPLETED',
+  PENDING: 'PENDING'
 };
 
 exports.Prisma.ModelName = {
   User: 'User',
-  Customer: 'Customer',
   Appointment: 'Appointment',
-  ServiceItem: 'ServiceItem',
-  Staff: 'Staff'
+  ServiceItem: 'ServiceItem'
 };
 
 /**

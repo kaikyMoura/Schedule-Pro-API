@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { compare, hash } from 'bcryptjs';
-import { User } from 'prisma/app/generated/prisma/client';
+import { Role, User } from 'prisma/app/generated/prisma/client';
 import { AuthService } from 'src/auth/auth.service';
 import { ChangePasswordDto } from 'src/common/dtos/change-password-user.schema';
 import { InvalidCredentialsException } from 'src/common/exceptions/invalid-credentials.exception';
@@ -9,10 +9,10 @@ import { UserAlreadyRegisteredException } from 'src/common/exceptions/user-alrea
 import { UserNotFoundException } from 'src/common/exceptions/user-not-found.exception';
 import { ResponseModel } from 'src/common/models/response.model';
 import { EmailService } from 'src/common/services/email.service';
-import { v4 as uuidv4 } from 'uuid';
-import { CreateUserDto } from './dto/create-user.dto';
-import { LoginUserDto } from './dto/login-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { BaseUserDto } from './dtos/base-user.dto';
+import { CreateUserDto } from './dtos/create-user.dto';
+import { LoginUserDto } from './dtos/login-user.dto';
+import { UpdateUserDto } from './dtos/update-user.dto';
 import { UserRepository } from './user.repository';
 
 @Injectable()
@@ -25,28 +25,83 @@ export class UserService {
   private saltRounds = 10;
 
   /**
-   * Retrieves a list of all User objects in the database.
+   * Retrieves all User objects from the database.
    *
-   * @returns {Promise<ResponseModel<Omit<User, 'password' | 'createdAt' | 'updatedAt'>[], Error>>} - A promise that resolves to a ResponseModel
-   * with the list of User objects, or an error if the operation fails.
+   * @returns {Promise<Omit<BaseUserDto, 'password'>[]>} - A promise that resolves to an array of User objects
+   * excluding the password field.
    *
    * @example
-   * const users = await userService.retrieveAll()
+   * const users = await userService.retrieveAll();
    */
-  async retrieveAll(): Promise<
-    ResponseModel<Omit<User, 'password' | 'createdAt' | 'updatedAt'>[], Error>
-  > {
+  async retrieveAll(): Promise<Omit<BaseUserDto, 'password'>[]> {
     const retrivedUsers = await this.userRepository.findMany();
 
+    return retrivedUsers.map((user) => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      photo: user.photo!,
+      role: user.role,
+    }));
+  }
+
+  /**
+   * Retrieves all User objects from the database with a specific role.
+   *
+   * @param {Role} role - The role of the Users to retrieve.
+   *
+   * @returns {Promise<Omit<BaseUserDto, 'password'>[]>} - A promise that resolves to an array of User objects
+   * excluding the password field and filtered by the given role.
+   *
+   * @example
+   * const staffUsers = await userService.retrieveAllByRole(Role.STAFF);
+   */
+  async retrieveAllByRole(
+    role: Role,
+  ): Promise<Omit<BaseUserDto, 'password'>[]> {
+    const retrivedUsers = await this.userRepository.findManyByRole(role);
+
+    return retrivedUsers.map((user) => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      photo: user.photo!,
+      role: user.role,
+    }));
+  }
+
+  /**
+   * Retrieves the first User object by its unique id and appointment date and time.
+   *
+   * @param {string} id - The id of the User to retrieve.
+   * @param {string} date - The date of the appointment.
+   * @param {string} time - The time of the appointment.
+   *
+   * @returns {Promise<Omit<BaseUserDto, 'password'>>} - A promise that resolves to the User object
+   * with the given id, date, and time, or throws an error if the User is not found.
+   *
+   * @throws {UserNotFoundException} - Thrown if no User with the given criteria is found in the database.
+   */
+  async retrieveFirstByIdAndDateAndTime(
+    id: string,
+    date: string,
+    time: string,
+  ): Promise<Omit<BaseUserDto, 'password'>> {
+    const retrievedUser = await this.userRepository.findFirst(id, date, time);
+
+    if (!retrievedUser) {
+      throw new UserNotFoundException('User not found');
+    }
+
     return {
-      data: retrivedUsers.map((user) => ({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        photo: user.photo,
-        role: user.role,
-      })),
+      id: retrievedUser.id,
+      name: retrievedUser.name,
+      email: retrievedUser.email,
+      phone: retrievedUser.phone,
+      photo: retrievedUser.photo!,
+      role: retrievedUser.role,
     };
   }
 
@@ -55,20 +110,16 @@ export class UserService {
    *
    * @param {string} email - The email of the User to retrieve.
    *
-   * @returns {Promise<ResponseModel<Omit<User, 'password' | 'createdAt' | 'updatedAt'>, Error>>} - A promise that resolves to a ResponseModel
-   * with the User object with the given email, or an error if the operation fails.
+   * @returns {Promise<Omit<BaseUserDto, 'password'>>} - A promise that resolves to the User object with the given email.
+   *
+   * @throws {MissingRequiredPropertiesException} - Thrown if the email is missing.
+   * @throws {UserNotFoundException} - Thrown if no User with the given email is found in the database.
    *
    * @example
-   * const user = await userService.retrieveByEmail('john.doe@example.com')
+   * const user = await userService.retrieveByEmail('dYH2M@example.com');
    *
-   * @throws {MissingRequiredPropertiesException} - Thrown if the email is missing or undefined.
-   * @throws {UserNotFoundException} - Thrown if the User with the given email does not exist in the database.
    */
-  async retrieveByEmail(
-    email: string,
-  ): Promise<
-    ResponseModel<Omit<User, 'password' | 'createdAt' | 'updatedAt'>, Error>
-  > {
+  async retrieveByEmail(email: string): Promise<Omit<BaseUserDto, 'password'>> {
     if (!email) {
       throw new MissingRequiredPropertiesException();
     }
@@ -80,14 +131,12 @@ export class UserService {
     }
 
     return {
-      data: {
-        id: retrivedUser.id,
-        name: retrivedUser.name,
-        email: retrivedUser.email,
-        phone: retrivedUser.phone,
-        photo: retrivedUser.photo,
-        role: retrivedUser.role,
-      },
+      id: retrivedUser.id,
+      name: retrivedUser.name,
+      email: retrivedUser.email,
+      phone: retrivedUser.phone,
+      photo: retrivedUser.photo!,
+      role: retrivedUser.role,
     };
   }
 
@@ -96,8 +145,7 @@ export class UserService {
    *
    * @param {string} userId - The id of the User to retrieve.
    *
-   * @returns {Promise<ResponseModel<Omit<User, 'password' | 'createdAt' | 'updatedAt'>, Error>>} - A promise that resolves to a ResponseModel
-   * with the User object with the given id, or an error if the operation fails.
+   * @returns {Promise<Omit<BaseUserDto, 'password'>>} - A promise that resolves to the User object with the given email.
    *
    * @example
    * const user = await userService.retrieveById('1')
@@ -105,11 +153,7 @@ export class UserService {
    * @throws {MissingRequiredPropertiesException} - Thrown if the userId is missing or undefined.
    * @throws {UserNotFoundException} - Thrown if the User with the given id does not exist in the database.
    */
-  async retrieveById(
-    userId: string,
-  ): Promise<
-    ResponseModel<Omit<User, 'password' | 'createdAt' | 'updatedAt'>, Error>
-  > {
+  async retrieveById(userId: string): Promise<Omit<BaseUserDto, 'password'>> {
     if (!userId) {
       throw new MissingRequiredPropertiesException();
     }
@@ -121,14 +165,12 @@ export class UserService {
     }
 
     return {
-      data: {
-        id: retrivedUser.id,
-        name: retrivedUser.name,
-        email: retrivedUser.email,
-        phone: retrivedUser.phone,
-        photo: retrivedUser.photo,
-        role: retrivedUser.role,
-      },
+      id: retrivedUser.id,
+      name: retrivedUser.name,
+      email: retrivedUser.email,
+      phone: retrivedUser.phone,
+      photo: retrivedUser.photo!,
+      role: retrivedUser.role,
     };
   }
 
@@ -188,7 +230,7 @@ export class UserService {
    *
    * @param {CreateUserDto} user - The User data to create.
    *
-   * @returns {Promise<ResponseModel<Omit<User, 'id' | 'password' | 'createdAt' | 'updatedAt'>, Error>>} - A promise that resolves to a ResponseModel
+   * @returns {Promise<ResponseModel<Omit<BaseUserDto, 'id' | 'password'>, Error>>} - A promise that resolves to a ResponseModel
    * with the User data without the password, or an error if the operation fails.
    *
    * @example
@@ -202,16 +244,11 @@ export class UserService {
    *
    * @throws {MissingRequiredPropertiesException} - Thrown if the User data is missing or undefined.
    * @throws {InvalidCredentialsException} - Thrown if the User email is invalid.
-   * @throws {UserAlreadyRegisteredException} - Thrown if the User with the given email already exists in the database.
+   * @throws {UserAlreadyRegisteredException} - Thrown if the User with the given email or phone already exists in the database.
    */
   async create(
     user: CreateUserDto,
-  ): Promise<
-    ResponseModel<
-      Omit<User, 'id' | 'password' | 'createdAt' | 'updatedAt'>,
-      Error
-    >
-  > {
+  ): Promise<ResponseModel<Omit<BaseUserDto, 'id' | 'password'>, Error>> {
     if (!user.name || !user.email) {
       throw new MissingRequiredPropertiesException();
     }
@@ -224,8 +261,14 @@ export class UserService {
       throw new UserAlreadyRegisteredException();
     }
 
+    if (await this.userRepository.findUniqueByPhone(user.phone)) {
+      throw new HttpException(
+        'Phone already registered! Try logging in',
+        HttpStatus.CONFLICT,
+      );
+    }
+
     await this.userRepository.create({
-      id: uuidv4(),
       name: user.name,
       email: user.email,
       password: await hash(user.password, this.saltRounds),
@@ -281,21 +324,10 @@ export class UserService {
     await this.userRepository.update(id, user);
   }
 
-  /**
-   * Resets the password of a User in the database using a valid token.
-   *
-   * @param {string} token - The token to verify the User.
-   * @param {ChangePasswordDto} resetPasswordDto - The new password for the User.
-   *
-   * @returns {Promise<void>} - A promise that resolves when the User's password has been updated.
-   *
-   * @throws {MissingRequiredPropertiesException} - Thrown if the token or the new password is missing or undefined.
-   * @throws {UserNotFoundException} - Thrown if the User with the given token does not exist in the database.
-   */
   async resetPassword(
     token: string,
     resetPasswordDto: ChangePasswordDto,
-  ): Promise<void> {
+  ): Promise<string> {
     if (!token || !resetPasswordDto.newPassword) {
       throw new MissingRequiredPropertiesException();
     }
@@ -312,6 +344,8 @@ export class UserService {
       retrievedCustomer.id,
       hashedNewPassword,
     );
+
+    return 'Password reset successfully';
   }
 
   /**

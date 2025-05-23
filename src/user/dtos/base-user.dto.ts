@@ -1,16 +1,20 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsEmail,
+  IsEnum,
   IsObject,
   IsOptional,
   IsString,
+  IsUUID,
   MinLength,
 } from 'class-validator';
-import { Appointment } from 'prisma/app/generated/prisma/client';
+import { Role } from 'prisma/app/generated/prisma/client';
+import { BaseAppointmentDto } from 'src/appointment/dto/base-appointment.dto';
 
-export class BaseCustomerDto {
-  @IsString()
-  id: string;
+export class BaseUserDto {
+  @IsOptional()
+  @IsUUID()
+  id?: string;
 
   @ApiProperty({ example: 'Jane Doe' })
   @IsString()
@@ -34,7 +38,19 @@ export class BaseCustomerDto {
   @IsString()
   photo?: string;
 
+  @ApiProperty({ example: 'ADMIN', enum: Role })
+  @IsEnum(Role)
+  role: Role;
+
   @IsOptional()
   @IsObject()
-  appointments?: Appointment[];
+  appointments?: BaseAppointmentDto[];
+
+  @IsOptional()
+  @IsObject()
+  services?: BaseAppointmentDto[];
+
+  @IsOptional()
+  @IsObject()
+  staffAppointments?: BaseAppointmentDto[];
 }

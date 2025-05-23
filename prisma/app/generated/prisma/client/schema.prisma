@@ -8,16 +8,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  ADMIN
-  STAFF
-}
-
 enum Status {
   CANCELLED
   CONFIRMED
   COMPLETED
   PENDING
+}
+
+enum Role {
+  ADMIN
+  STAFF
+  CUSTOMER
 }
 
 model User {
@@ -30,55 +31,47 @@ model User {
   role      Role
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
 
-model Customer {
-  id           String        @id @default(uuid())
-  name         String
-  email        String        @unique
-  password     String
-  phone        String        @unique
-  photo        String?
-  appointments Appointment[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  appointments      Appointment[] @relation("CustomerAppointments")
+  services          ServiceItem[] @relation("StaffServices")
+  staffAppointments Appointment[] @relation("StaffAppointments")
 }
 
 model Appointment {
-  id         String      @id @default(uuid())
-  notes      String?
-  date       String
-  time       String
-  status     String
-  price      Float
+  id     String   @id @default(uuid())
+  notes  String?
+  date   DateTime
+  time   String
+  status Status
+  price  Float
+
+  // to users with Role CUSTOMER
   customerId String
-  customer   Customer    @relation(fields: [customerId], references: [id])
-  /// If null, means "any available staff"
-  staffId    String?
-  staff      Staff?      @relation(fields: [staffId], references: [id])
-  serviceId  String
-  service    ServiceItem @relation(fields: [serviceId], references: [id])
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  customer   User   @relation("CustomerAppointments", fields: [customerId], references: [id])
+
+  // to users with Role STAFF
+  staffId String?
+  staff   User?   @relation("StaffAppointments", fields: [staffId], references: [id])
+
+  // to services
+  serviceId String
+  service   ServiceItem @relation(fields: [serviceId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ServiceItem {
-  id           String        @id @default(uuid())
+  id           String @id @default(uuid())
   type         String
   price        Float
   duration     Int
   availability Json
-  staffId      String
-  staff        Staff         @relation(fields: [staffId], references: [id])
-  appointments Appointment[]
-}
 
-model Staff {
-  id           String        @id @default(uuid())
-  name         String
-  email        String        @unique
+  staffId      String
+  staff        User          @relation("StaffServices", fields: [staffId], references: [id])
   appointments Appointment[]
-  services     ServiceItem[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
