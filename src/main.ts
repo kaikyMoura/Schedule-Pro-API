@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { ValidationPipe } from './validation.pipe';
 
@@ -18,6 +19,7 @@ async function bootstrap() {
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, documentFactory);
 
+  app.use(cookieParser());
   app.useGlobalPipes(new ValidationPipe());
   app.enableCors();
 

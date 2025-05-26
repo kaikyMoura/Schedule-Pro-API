@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { compare, hash } from 'bcryptjs';
-import { Role, User } from 'prisma/app/generated/prisma/client';
+import { Role } from 'prisma/app/generated/prisma/client';
 import { AuthService } from 'src/auth/auth.service';
 import { ChangePasswordDto } from 'src/common/dtos/change-password-user.schema';
 import { InvalidCredentialsException } from 'src/common/exceptions/invalid-credentials.exception';
@@ -8,10 +8,8 @@ import { MissingRequiredPropertiesException } from 'src/common/exceptions/missin
 import { UserAlreadyRegisteredException } from 'src/common/exceptions/user-already-registered.exception';
 import { UserNotFoundException } from 'src/common/exceptions/user-not-found.exception';
 import { ResponseModel } from 'src/common/models/response.model';
-import { EmailService } from 'src/common/services/email.service';
 import { BaseUserDto } from './dtos/base-user.dto';
 import { CreateUserDto } from './dtos/create-user.dto';
-import { LoginUserDto } from './dtos/login-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { UserRepository } from './user.repository';
 
@@ -20,7 +18,6 @@ export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly authService: AuthService,
-    private readonly emailService: EmailService,
   ) {}
   private saltRounds = 10;
 
@@ -33,7 +30,9 @@ export class UserService {
    * @example
    * const users = await userService.retrieveAll();
    */
-  async retrieveAll(): Promise<Omit<BaseUserDto, 'password'>[]> {
+  async retrieveAll(): Promise<
+    Omit<BaseUserDto, 'password' | 'availability'>[]
+  > {
     const retrivedUsers = await this.userRepository.findMany();
 
     return retrivedUsers.map((user) => ({
@@ -69,6 +68,7 @@ export class UserService {
       phone: user.phone,
       photo: user.photo!,
       role: user.role,
+      availability: user.availability,
     }));
   }
 
@@ -119,7 +119,7 @@ export class UserService {
    * const user = await userService.retrieveByEmail('dYH2M@example.com');
    *
    */
-  async retrieveByEmail(email: string): Promise<Omit<BaseUserDto, 'password'>> {
+  async retrieveByEmail(email: string): Promise<BaseUserDto> {
     if (!email) {
       throw new MissingRequiredPropertiesException();
     }
@@ -134,6 +134,7 @@ export class UserService {
       id: retrivedUser.id,
       name: retrivedUser.name,
       email: retrivedUser.email,
+      password: retrivedUser.password,
       phone: retrivedUser.phone,
       photo: retrivedUser.photo!,
       role: retrivedUser.role,
@@ -171,57 +172,6 @@ export class UserService {
       phone: retrivedUser.phone,
       photo: retrivedUser.photo!,
       role: retrivedUser.role,
-    };
-  }
-
-  /**
-   * Generates a JWT token for the given User credentials.
-   *
-   * @param {LoginUserDto} user - The User credentials to generate a token for.
-   *
-   * @returns {Promise<ResponseModel<{token: string; expiresIn: string}, Error>>} - A promise that resolves to a ResponseModel
-   * with the generated JWT token and its expiry time, or an error if the operation fails.
-   *
-   * @example
-   * const { token, expiresIn } = await userService.generateTokenByCrendentials({
-   *   email: 'jane.doe@example.com',
-   *   password: 'securePassword123',
-   * })
-   *
-   * @throws {MissingRequiredPropertiesException} - Thrown if the User credentials are missing or undefined.
-   * @throws {UserNotFoundException} - Thrown if the User with the given email does not exist in the database.
-   * @throws {InvalidCredentialsException} - Thrown if the User credentials are invalid.
-   */
-  async generateTokenByCrendentials(
-    user: LoginUserDto,
-  ): Promise<ResponseModel<{ token: string; expiresIn: string }, Error>> {
-    if (!user || !user.email || !user.password) {
-      throw new MissingRequiredPropertiesException();
-    }
-
-    const retrivedUser = await this.userRepository.findUniqueByEmail(
-      user.email,
-    );
-
-    if (!retrivedUser) {
-      throw new UserNotFoundException('User not found');
-    }
-
-    if (
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email) ||
-      retrivedUser.email != user.email ||
-      !(await compare(user.password, retrivedUser.password))
-    ) {
-      throw new InvalidCredentialsException();
-    }
-
-    const data = this.authService.generateToken(retrivedUser);
-
-    return {
-      data: {
-        token: data.token,
-        expiresIn: data.expiresIn,
-      },
     };
   }
 
@@ -324,30 +274,6 @@ export class UserService {
     await this.userRepository.update(id, user);
   }
 
-  async resetPassword(
-    token: string,
-    resetPasswordDto: ChangePasswordDto,
-  ): Promise<string> {
-    if (!token || !resetPasswordDto.newPassword) {
-      throw new MissingRequiredPropertiesException();
-    }
-
-    const retrievedCustomer = await this.authService.verifyToken<User>(token);
-
-    if (!retrievedCustomer) {
-      throw new UserNotFoundException('User not found');
-    }
-
-    const hashedNewPassword = await hash(resetPasswordDto.newPassword, 10);
-
-    await this.userRepository.updatePassword(
-      retrievedCustomer.id,
-      hashedNewPassword,
-    );
-
-    return 'Password reset successfully';
-  }
-
   /**
    * Changes the password of a User in the database.
    *
@@ -386,48 +312,5 @@ export class UserService {
     const hashedNewPassword = await hash(changePasswordDto.newPassword, 10);
 
     await this.userRepository.updatePassword(id, hashedNewPassword);
-  }
-
-  /**
-   * Sends a password reset email to the given email address if a User with that address exists.
-   *
-   * @param {string} email - The email address of the User to send the password reset email to.
-   *
-   * @returns {Promise<void>} - A promise that resolves when the password reset email has been sent.
-   *
-   * @throws {MissingRequiredPropertiesException} - Thrown if the email address is missing or undefined.
-   * @throws {UserNotFoundException} - Thrown if the User with the given email address does not exist in the database.
-   * @throws {InvalidCredentialsException} - Thrown if the given email address is invalid.
-   */
-  async forgotPassword(email: string): Promise<void> {
-    if (!email) {
-      throw new MissingRequiredPropertiesException();
-    }
-
-    const retrievedCustomer =
-      await this.userRepository.findUniqueByEmail(email);
-
-    if (!retrievedCustomer) {
-      throw new UserNotFoundException('User not found');
-    }
-
-    if (
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
-      retrievedCustomer.email != email
-    ) {
-      throw new InvalidCredentialsException();
-    }
-
-    const { token } = this.authService.generateToken({
-      id: retrievedCustomer.id,
-      name: retrievedCustomer.name,
-      email: retrievedCustomer.email,
-    });
-
-    await this.emailService.sendResetPasswordEmail(
-      retrievedCustomer.email,
-      retrievedCustomer.name,
-      token,
-    );
   }
 }

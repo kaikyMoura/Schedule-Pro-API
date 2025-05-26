@@ -132,6 +132,16 @@ exports.Prisma.UserScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.UserSessionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  refreshToken: 'refreshToken',
+  userAgent: 'userAgent',
+  ipAddress: 'ipAddress',
+  createdAt: 'createdAt',
+  expiresAt: 'expiresAt'
+};
+
 exports.Prisma.AppointmentScalarFieldEnum = {
   id: 'id',
   notes: 'notes',
@@ -151,19 +161,23 @@ exports.Prisma.ServiceItemScalarFieldEnum = {
   type: 'type',
   price: 'price',
   duration: 'duration',
-  availability: 'availability',
   staffId: 'staffId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.StaffAvailabilityScalarFieldEnum = {
+  id: 'id',
+  staffId: 'staffId',
+  dayOfWeek: 'dayOfWeek',
+  startTime: 'startTime',
+  endTime: 'endTime',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
-};
-
-exports.Prisma.JsonNullValueInput = {
-  JsonNull: Prisma.JsonNull
 };
 
 exports.Prisma.QueryMode = {
@@ -174,12 +188,6 @@ exports.Prisma.QueryMode = {
 exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
-};
-
-exports.Prisma.JsonNullValueFilter = {
-  DbNull: Prisma.DbNull,
-  JsonNull: Prisma.JsonNull,
-  AnyNull: Prisma.AnyNull
 };
 exports.Role = exports.$Enums.Role = {
   ADMIN: 'ADMIN',
@@ -196,8 +204,10 @@ exports.Status = exports.$Enums.Status = {
 
 exports.Prisma.ModelName = {
   User: 'User',
+  UserSession: 'UserSession',
   Appointment: 'Appointment',
-  ServiceItem: 'ServiceItem'
+  ServiceItem: 'ServiceItem',
+  StaffAvailability: 'StaffAvailability'
 };
 
 /**

@@ -32,9 +32,28 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  appointments      Appointment[] @relation("CustomerAppointments")
-  services          ServiceItem[] @relation("StaffServices")
+  appointments Appointment[] @relation("CustomerAppointments")
+
+  // to user with Role STAFF
+  availability StaffAvailability[]
+  services     ServiceItem[]       @relation("StaffServices")
+
   staffAppointments Appointment[] @relation("StaffAppointments")
+
+  sessions UserSession[] @relation("UserSessions")
+}
+
+model UserSession {
+  id           String   @id @default(uuid())
+  userId       String
+  refreshToken String
+  userAgent    String?
+  ipAddress    String?
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+  user         User     @relation("UserSessions", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Appointment {
@@ -47,11 +66,11 @@ model Appointment {
 
   // to users with Role CUSTOMER
   customerId String
-  customer   User   @relation("CustomerAppointments", fields: [customerId], references: [id])
+  customer   User   @relation("CustomerAppointments", fields: [customerId], references: [id], onDelete: Cascade)
 
   // to users with Role STAFF
   staffId String?
-  staff   User?   @relation("StaffAppointments", fields: [staffId], references: [id])
+  staff   User?   @relation("StaffAppointments", fields: [staffId], references: [id], onDelete: SetNull)
 
   // to services
   serviceId String
@@ -62,11 +81,10 @@ model Appointment {
 }
 
 model ServiceItem {
-  id           String @id @default(uuid())
-  type         String
-  price        Float
-  duration     Int
-  availability Json
+  id       String @id @default(uuid())
+  type     String
+  price    Float
+  duration Int
 
   staffId      String
   staff        User          @relation("StaffServices", fields: [staffId], references: [id])
@@ -74,4 +92,18 @@ model ServiceItem {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model StaffAvailability {
+  id      String @id @default(uuid())
+  staffId String
+
+  dayOfWeek Int
+  startTime String
+  endTime   String
+
+  createdAt DateTime @default(now())
+  staff     User     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId])
 }

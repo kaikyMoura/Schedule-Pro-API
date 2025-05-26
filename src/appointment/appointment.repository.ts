@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Appointment, Status } from 'prisma/app/generated/prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
-import { BaseAppointmentDto } from './dto/base-appointment.dto';
 
 @Injectable()
 export class AppointmentRepository {
@@ -14,8 +14,19 @@ export class AppointmentRepository {
    * @returns The newly created Appointment.
    * @throws If the Appointment already exists.
    */
-  async create(data: BaseAppointmentDto): Promise<Appointment> {
-    const response = await this.prisma.appointment.create({ data });
+  async create(data: CreateAppointmentDto): Promise<Appointment> {
+    const response = await this.prisma.appointment.create({
+      data: {
+        notes: data.notes,
+        date: data.date,
+        time: data.time,
+        status: 'PENDING',
+        price: data.price,
+        customerId: data.customerId,
+        staffId: data.staffId,
+        serviceId: data.serviceId,
+      },
+    });
     return response;
   }
 

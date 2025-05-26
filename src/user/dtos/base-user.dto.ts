@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsEmail,
   IsEnum,
@@ -7,9 +8,11 @@ import {
   IsString,
   IsUUID,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
 import { Role } from 'prisma/app/generated/prisma/client';
 import { BaseAppointmentDto } from 'src/appointment/dto/base-appointment.dto';
+import { BaseStaffAvailabilityDto } from './base-staff-availability.dto';
 
 export class BaseUserDto {
   @IsOptional()
@@ -36,7 +39,7 @@ export class BaseUserDto {
 
   @IsOptional()
   @IsString()
-  photo?: string;
+  photo?: string | null;
 
   @ApiProperty({ example: 'ADMIN', enum: Role })
   @IsEnum(Role)
@@ -45,6 +48,12 @@ export class BaseUserDto {
   @IsOptional()
   @IsObject()
   appointments?: BaseAppointmentDto[];
+
+  @ValidateNested({ each: true })
+  @Type(() => BaseStaffAvailabilityDto)
+  @IsOptional()
+  @IsObject()
+  availability?: BaseStaffAvailabilityDto;
 
   @IsOptional()
   @IsObject()

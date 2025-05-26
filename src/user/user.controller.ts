@@ -1,21 +1,10 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Put,
-  Req,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { Public } from 'src/common/decorators/public.decorator';
 import { ChangePasswordDto } from 'src/common/dtos/change-password-user.schema';
-import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
 import { CustomRequest } from 'src/common/types/custom-request';
 import { AllowedRole } from './decorators/role.decorator';
 import { CreateUserDto } from './dtos/create-user.dto';
-import { LoginUserDto } from './dtos/login-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { UserService } from './user.service';
 
@@ -61,14 +50,14 @@ export class UserController {
     return this.userService.retrieveById(id);
   }
 
-  @Get('/email/:email')
+  @Get('email/:email')
   @AllowedRole('ADMIN')
   @ApiBearerAuth()
   findOneByEmail(@Param('email') email: string) {
     return this.userService.retrieveByEmail(email);
   }
 
-  @Get('/me')
+  @Get('me')
   @ApiBearerAuth()
   findMe(@Req() req: CustomRequest) {
     return this.userService.retrieveByEmail(req.user.email);
@@ -79,41 +68,6 @@ export class UserController {
   @Public()
   async create(@Body() userDto: CreateUserDto) {
     return await this.userService.create(userDto);
-  }
-
-  @Post('/login')
-  @ApiBody({ type: LoginUserDto })
-  @Public()
-  async login(@Body() userLoginDto: LoginUserDto) {
-    return await this.userService.generateTokenByCrendentials(userLoginDto);
-  }
-
-  @Post('/forgot-password')
-  @Public()
-  async forgotPassword(@Body() email: string) {
-    return await this.userService.forgotPassword(email);
-  }
-
-  @Post('/reset-password')
-  @ApiBearerAuth()
-  @ApiBody({ type: ChangePasswordDto })
-  async resetPassword(@Body() resetPasswordDto: ChangePasswordDto) {
-    const { token } = resetPasswordDto;
-
-    if (!token) {
-      throw new MissingRequiredPropertiesException('Token is missing');
-    }
-
-    const result = await this.userService.resetPassword(
-      token,
-      resetPasswordDto,
-    );
-
-    if (!result) {
-      throw new BadRequestException('Password reset failed');
-    }
-
-    return { message: result };
   }
 
   @Put(':id')

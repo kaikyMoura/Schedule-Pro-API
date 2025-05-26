@@ -22,56 +22,88 @@ enum Role {
 }
 
 model User {
-  id          String     @id @default(uuid())
-  name        String
-  email       String     @unique
-  password    String
-  phone       String     @unique
-  photo       String?
-  role        Role
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  phone     String   @unique
+  photo     String?
+  role      Role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  appointments     Appointment[]     @relation("CustomerAppointments")
-  services         ServiceItem[]     @relation("StaffServices")
-  staffAppointments Appointment[]    @relation("StaffAppointments")
+  appointments Appointment[] @relation("CustomerAppointments")
+
+  // to user with Role STAFF
+  availability StaffAvailability[]
+  services     ServiceItem[]       @relation("StaffServices")
+
+  staffAppointments Appointment[] @relation("StaffAppointments")
+
+  sessions UserSession[] @relation("UserSessions")
+}
+
+model UserSession {
+  id           String   @id @default(uuid())
+  userId       String
+  refreshToken String
+  userAgent    String?
+  ipAddress    String?
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+  user         User     @relation("UserSessions", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Appointment {
-  id           String       @id @default(uuid())
-  notes        String?
-  date         DateTime
-  time         String
-  status       Status
-  price        Float
-  
+  id     String   @id @default(uuid())
+  notes  String?
+  date   DateTime
+  time   String
+  status Status
+  price  Float
+
   // to users with Role CUSTOMER
-  customerId  String
-  customer    User         @relation("CustomerAppointments", fields: [customerId], references: [id])
+  customerId String
+  customer   User   @relation("CustomerAppointments", fields: [customerId], references: [id], onDelete: Cascade)
 
   // to users with Role STAFF
-  staffId     String?
-  staff       User?        @relation("StaffAppointments", fields: [staffId], references: [id])
+  staffId String?
+  staff   User?   @relation("StaffAppointments", fields: [staffId], references: [id], onDelete: SetNull)
 
   // to services
-  serviceId   String
-  service     ServiceItem  @relation(fields: [serviceId], references: [id])
+  serviceId String
+  service   ServiceItem @relation(fields: [serviceId], references: [id])
 
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ServiceItem {
-  id              String        @id @default(uuid())
-  type            String
-  price           Float
-  duration        Int
-  availability  Json
+  id       String @id @default(uuid())
+  type     String
+  price    Float
+  duration Int
 
-  staffId       String
-  staff         User        @relation("StaffServices", fields: [staffId], references: [id])
-  appointments  Appointment[]
+  staffId      String
+  staff        User          @relation("StaffServices", fields: [staffId], references: [id])
+  appointments Appointment[]
 
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StaffAvailability {
+  id      String @id @default(uuid())
+  staffId String
+
+  dayOfWeek Int
+  startTime String
+  endTime   String
+
+  createdAt DateTime @default(now())
+  staff     User     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId])
 }

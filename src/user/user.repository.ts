@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Role, User } from 'prisma/app/generated/prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { BaseUserDto } from './dtos/base-user.dto';
+import { CreateUserDto } from './dtos/create-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
+import { BaseUserDto } from './dtos/base-user.dto';
 
 @Injectable()
 export class UserRepository {
@@ -14,16 +15,27 @@ export class UserRepository {
    * @returns The newly created User.
    * @throws If the User already exists.
    */
-  async create(data: BaseUserDto): Promise<User> {
+  async create(data: CreateUserDto): Promise<BaseUserDto> {
     const response = await this.prisma.user.create({
       data: {
         ...data,
+        availability: data.availability
+          ? { create: data.availability }
+          : undefined,
         appointments: undefined,
         services: undefined,
         staffAppointments: undefined,
       },
     });
-    return response;
+    return {
+      id: response.id,
+      email: response.email,
+      password: response.password,
+      name: response.name,
+      phone: response.phone,
+      photo: response.photo!,
+      role: response.role,
+    };
   }
 
   /**
@@ -91,7 +103,7 @@ export class UserRepository {
    *
    * @returns {Promise<User[]>} - A promise that resolves to an array of User objects with the given role.
    */
-  async findManyByRole(role: Role): Promise<User[]> {
+  async findManyByRole(role: Role): Promise<BaseUserDto[]> {
     return await this.prisma.user.findMany({
       where: {
         role: role,

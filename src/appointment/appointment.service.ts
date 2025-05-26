@@ -238,7 +238,6 @@ export class AppointmentService {
     const newAppointment = await this.appointmentRepository.create({
       ...appointment,
       staffId: selectedStaffId,
-      status: 'PENDING',
     });
 
     return {

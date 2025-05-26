@@ -31,7 +31,13 @@ export class ServiceItemService {
   async retrieveAll(): Promise<BaseServiceItemDto[]> {
     const retrivedServiceItems = await this.serviceItemRepository.findMany();
 
-    return retrivedServiceItems;
+    return retrivedServiceItems.map((serviceItem) => ({
+      id: serviceItem.id,
+      type: serviceItem.type,
+      price: serviceItem.price,
+      duration: serviceItem.duration,
+      staffId: serviceItem.staffId,
+    }));
   }
 
   /**
@@ -59,7 +65,13 @@ export class ServiceItemService {
       throw new NotFoundException('Service not found');
     }
 
-    return retrivedServiceItem;
+    return {
+      id: retrivedServiceItem.id,
+      type: retrivedServiceItem.type,
+      price: retrivedServiceItem.price,
+      duration: retrivedServiceItem.duration,
+      staffId: retrivedServiceItem.staffId,
+    };
   }
 
   /**
@@ -123,7 +135,6 @@ export class ServiceItemService {
         type: newServiceItem.type,
         price: newServiceItem.price,
         duration: newServiceItem.duration,
-        availability: newServiceItem.availability,
         staffName: staffName,
       },
     };
