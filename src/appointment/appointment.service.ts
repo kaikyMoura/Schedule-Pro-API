@@ -14,6 +14,7 @@ import { AppointmentResponseDto } from './dto/appointment-response.dto';
 import { BaseAppointmentDto } from './dto/base-appointment.dto';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
+import { Role, Status } from 'prisma/app/generated/prisma/client';
 
 @Injectable()
 export class AppointmentService {
@@ -36,6 +37,79 @@ export class AppointmentService {
 
     return appointments.map((appointment) => ({
       id: appointment.id,
+      date: appointment.date,
+      time: appointment.time,
+      status: appointment.status,
+      price: appointment.price,
+      notes: appointment.notes!,
+      customerId: appointment.customerId,
+      staffId: appointment.staffId!,
+      serviceId: appointment.serviceId,
+    }));
+  }
+
+  /**
+   * Retrieves all Appointment objects associated with a specific customer.
+   *
+   * @param {string} customerId - The unique identifier of the customer whose appointments are to be retrieved.
+   *
+   * @returns {Promise<BaseAppointmentDto[]>} - A promise that resolves to an array of BaseAppointmentDto objects
+   * containing details of the appointments associated with the specified customer.
+   *
+   * @example
+   * const customerAppointments = await appointmentService.retrieveAllByCustomerId('123456789');
+   *
+   * @throws {BadRequestException} - Thrown if the user is not a customer.
+   */
+
+  async retrieveAllByCustomerId(
+    customerId: string,
+  ): Promise<BaseAppointmentDto[]> {
+    const user = await this.userService.retrieveById(customerId);
+
+    if (user.role !== Role.CUSTOMER) {
+      throw new BadRequestException('User is not a customer');
+    }
+
+    const appointments =
+      await this.appointmentRepository.findAllCustomerAppointments(customerId);
+
+    return appointments.map((appointment) => ({
+      date: appointment.date,
+      time: appointment.time,
+      status: appointment.status,
+      price: appointment.price,
+      notes: appointment.notes!,
+      customerId: appointment.customerId,
+      staffId: appointment.staffId!,
+      serviceId: appointment.serviceId,
+    }));
+  }
+
+  /**
+   * Retrieves all Appointment objects associated with a specific staff member.
+   *
+   * @param {string} staffId - The unique identifier of the staff member whose appointments are to be retrieved.
+   *
+   * @returns {Promise<BaseAppointmentDto[]>} - A promise that resolves to an array of BaseAppointmentDto objects
+   * containing details of the appointments associated with the specified staff member.
+   *
+   * @example
+   * const staffAppointments = await appointmentService.retrieveAllByStaffId('123456789');
+   *
+   * @throws {BadRequestException} - Thrown if the user is not a staff member.
+   */
+  async retrieveAllByStaffId(staffId: string): Promise<BaseAppointmentDto[]> {
+    const user = await this.userService.retrieveById(staffId);
+
+    if (user.role !== Role.STAFF) {
+      throw new BadRequestException('User is not a staff member');
+    }
+
+    const appointments =
+      await this.appointmentRepository.findAllStaffAppointments(staffId);
+
+    return appointments.map((appointment) => ({
       date: appointment.date,
       time: appointment.time,
       status: appointment.status,
@@ -168,7 +242,7 @@ export class AppointmentService {
     });
 
     return {
-      message: 'User created successfully',
+      message: 'Appointment created successfully',
       data: {
         notes: newAppointment.notes!,
         date: newAppointment.date,
@@ -217,6 +291,23 @@ export class AppointmentService {
     }
 
     await this.appointmentRepository.update(id, updateAppointmentDto);
+  }
+
+  /**
+   * Generic method to update the status of an Appointment in the database.
+   *
+   * @param {string} id - The id of the Appointment to update.
+   * @param {Status} status - The new status of the Appointment.
+   *
+   * @example
+   * await appointmentService.changeStatus('1', 'CONFIRMED');
+   *
+   * @returns {Promise<void>} - A promise that resolves when the Appointment status has been updated.
+   *
+   * @throws {NotFoundException} - Thrown if the Appointment with the given id does not exist in the database.
+   */
+  async changeStatus(id: string, status: Status): Promise<void> {
+    await this.appointmentRepository.changeStatus(id, status);
   }
 
   /**

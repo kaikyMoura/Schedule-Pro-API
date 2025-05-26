@@ -35,11 +35,34 @@ export class AppointmentRepository {
     return data!;
   }
 
+  /**
+   * Retrieves all Appointment objects associated with a given Customer.
+   *
+   * @param {string} customerId - The unique identifier of the Customer whose appointments are to be fetched.
+   *
+   * @returns {Promise<Appointment[]>} - A promise that resolves to an array of Appointment objects related to the specified Customer.
+   *
+   * @throws {Prisma.NotFoundError} - Thrown if no Appointments are found for the given Customer id.
+   */
   async findAllCustomerAppointments(
     customerId: string,
   ): Promise<Appointment[]> {
     const data = await this.prisma.appointment.findMany({
       where: { customerId: customerId },
+    });
+    return data;
+  }
+
+  /**
+   * Retrieves all Appointment objects that belong to the given staff id.
+   *
+   * @param {string} staffId - The id of the staff member to retrieve the appointments for.
+   *
+   * @returns {Promise<Appointment[]>} - A promise that resolves to an array of Appointment objects that belong to the given staff id.
+   */
+  async findAllStaffAppointments(staffId: string): Promise<Appointment[]> {
+    const data = await this.prisma.appointment.findMany({
+      where: { staffId: staffId },
     });
     return data;
   }
@@ -107,6 +130,16 @@ export class AppointmentRepository {
     });
   }
 
+  /**
+   * Updates the status of an Appointment in the database.
+   *
+   * @param {string} id - The id of the Appointment to update.
+   * @param {Status} status - The new status of the Appointment.
+   *
+   * @returns {Promise<void>} - A promise that resolves when the Appointment status has been updated.
+   *
+   * @throws {Prisma.NotFoundError} - Thrown if the Appointment with the given id does not exist in the database.
+   */
   async changeStatus(id: string, status: Status): Promise<void> {
     await this.prisma.appointment.update({
       where: { id: id },
@@ -114,6 +147,17 @@ export class AppointmentRepository {
     });
   }
 
+  /**
+   * Finds the first Appointment that matches the given staffId, date and time.
+   *
+   * @param {string} staffId - The id of the staff member.
+   *
+   * @param {Date} date - The date of the appointment.
+   *
+   * @param {string} time - The time of the appointment.
+   *
+   * @returns {Promise<Appointment | null>} - A promise that resolves to the first Appointment if found, or `null` if no Appointment matches the given criteria.
+   */
   async findFirst(
     staffId: string,
     date: Date,

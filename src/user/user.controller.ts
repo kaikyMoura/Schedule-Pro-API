@@ -95,7 +95,7 @@ export class UserController {
   }
 
   @Post('/reset-password')
-  @Public()
+  @ApiBearerAuth()
   @ApiBody({ type: ChangePasswordDto })
   async resetPassword(@Body() resetPasswordDto: ChangePasswordDto) {
     const { token } = resetPasswordDto;

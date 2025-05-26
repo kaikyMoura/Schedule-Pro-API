@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { AllowedRole } from 'src/user/decorators/role.decorator';
 import { CreateServiceItemDto } from './dtos/create-service-item.dto';
@@ -55,10 +63,18 @@ export class ServiceItemController {
 
   @Put(':id')
   @ApiBearerAuth()
-  update(
+  async update(
     @Param('id') id: string,
     @Body() updateServiceItemDto: UpdateServiceItemDto,
   ) {
-    return this.serviceItemService.update(id, updateServiceItemDto);
+    await this.serviceItemService.update(id, updateServiceItemDto);
+    return { message: 'Service updated successfully' };
+  }
+
+  @Delete(':id')
+  @ApiBearerAuth()
+  async delete(@Param('id') id: string) {
+    await this.serviceItemService.delete(id);
+    return { message: 'Service deleted successfully' };
   }
 }
