@@ -1,6 +1,5 @@
 import {
-  HttpException,
-  HttpStatus,
+  BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -120,10 +119,7 @@ export class ServiceItemService {
       staffName = staff.name;
 
       if (staff.role !== 'STAFF') {
-        throw new HttpException(
-          'This user is not a staff',
-          HttpStatus.BAD_REQUEST,
-        );
+        throw new BadRequestException('User is not a staff member');
       }
     }
 

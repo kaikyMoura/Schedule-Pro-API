@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { compare, hash } from 'bcryptjs';
 import { Role } from 'prisma/app/generated/prisma/client';
 import { AuthService } from 'src/auth/auth.service';
@@ -212,10 +212,7 @@ export class UserService {
     }
 
     if (await this.userRepository.findUniqueByPhone(user.phone)) {
-      throw new HttpException(
-        'Phone already registered! Try logging in',
-        HttpStatus.CONFLICT,
-      );
+      throw new ConflictException('Phone already registered! Try logging in.');
     }
 
     await this.userRepository.create({

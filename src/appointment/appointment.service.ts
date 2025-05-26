@@ -1,10 +1,9 @@
 import {
   BadRequestException,
-  HttpException,
-  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Role, Status } from 'prisma/app/generated/prisma/client';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
 import { ResponseModel } from 'src/common/models/response.model';
 import { BaseUserDto } from 'src/user/dtos/base-user.dto';
@@ -14,7 +13,6 @@ import { AppointmentResponseDto } from './dto/appointment-response.dto';
 import { BaseAppointmentDto } from './dto/base-appointment.dto';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
-import { Role, Status } from 'prisma/app/generated/prisma/client';
 
 @Injectable()
 export class AppointmentService {
@@ -214,10 +212,7 @@ export class AppointmentService {
       const staff = staffResponse;
 
       if (staff.role !== 'STAFF') {
-        throw new HttpException(
-          'This user is not a staff',
-          HttpStatus.BAD_REQUEST,
-        );
+        throw new BadRequestException('User is not a staff member');
       }
 
       staffName = staff.name;

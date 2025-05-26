@@ -10,10 +10,11 @@ export class UserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Create a new User in the database.
-   * @param data The User data to be inserted.
-   * @returns The newly created User.
-   * @throws If the User already exists.
+   * Creates a new User in the database.
+   *
+   * @param {CreateUserDto} data - The User data to create, which may include optional availability.
+   *
+   * @returns {Promise<BaseUserDto>} - A promise that resolves to the newly created User's base data.
    */
   async create(data: CreateUserDto): Promise<BaseUserDto> {
     const response = await this.prisma.user.create({

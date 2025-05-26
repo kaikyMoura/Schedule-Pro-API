@@ -8,11 +8,12 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AppointmentService } from './appointment.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { Status } from 'prisma/app/generated/prisma/client';
+import { Roles } from 'src/user/decorators/role.decorator';
 
 @ApiTags('Appointment')
 @Controller('appointment')
@@ -20,7 +21,9 @@ export class AppointmentController {
   constructor(private readonly appointmentService: AppointmentService) {}
 
   @Get()
+  @Roles('CUSTOMER', 'ADMIN')
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all appointments' })
   async findAll(page?: number, pageSize?: number) {
     const retrievedAppointments = await this.appointmentService.retrieveAll();
 
@@ -49,7 +52,9 @@ export class AppointmentController {
   }
 
   @Get('customer/:customerId')
+  @Roles('CUSTOMER', 'ADMIN')
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all appointments for a customer' })
   async findAllCustomerAppointments(
     customerId: string,
     page?: number,
@@ -83,6 +88,7 @@ export class AppointmentController {
   }
 
   @Get('staff/:staffId')
+  @Roles('STAFF', 'ADMIN')
   @ApiBearerAuth()
   async findAllStaffAppointments(
     staffId: string,
@@ -117,12 +123,14 @@ export class AppointmentController {
   }
 
   @Get(':id')
+  @Roles('CUSTOMER', 'STAFF', 'ADMIN')
   @ApiBearerAuth()
   findOne(@Param('id') id: string) {
     return this.appointmentService.retrieveById(id);
   }
 
   @Post()
+  @Roles('CUSTOMER', 'ADMIN')
   @ApiBody({ type: CreateAppointmentDto })
   @ApiBearerAuth()
   create(@Body() appointmentDto: CreateAppointmentDto) {
@@ -130,6 +138,7 @@ export class AppointmentController {
   }
 
   @Put(':id')
+  @Roles('CUSTOMER', 'ADMIN')
   @ApiBearerAuth()
   async update(
     @Param('id') id: string,
@@ -140,6 +149,7 @@ export class AppointmentController {
   }
 
   @Delete(':id')
+  @Roles('CUSTOMER', 'ADMIN')
   @ApiBearerAuth()
   async delete(@Param('id') id: string) {
     await this.appointmentService.delete(id);

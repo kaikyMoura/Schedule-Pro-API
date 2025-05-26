@@ -12,7 +12,7 @@ import {
 } from 'class-validator';
 import { Role } from 'prisma/app/generated/prisma/client';
 import { BaseAppointmentDto } from 'src/appointment/dto/base-appointment.dto';
-import { BaseStaffAvailabilityDto } from './base-staff-availability.dto';
+import { BaseStaffAvailabilityDto } from 'src/staff-availability/dtos/base-staff-availability.dto';
 
 export class BaseUserDto {
   @IsOptional()

@@ -7,7 +7,7 @@ import {
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import * as bcrypt from 'bcryptjs';
 import { Request, Response } from 'express';
 import { LoginUserDto } from 'src/user/dtos/login-user.dto';
@@ -28,6 +28,7 @@ export class AuthController {
   @Post('login')
   @ApiBody({ type: LoginUserDto })
   @Public()
+  @ApiOperation({ summary: 'Login' })
   async login(
     @Body() body: LoginUserDto,
     @Req() req: Request,
@@ -60,6 +61,8 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Refresh access token' })
   async refresh(@Req() req: Request, @Res() res: Response) {
     const refreshToken = req.cookies?.refreshToken as string | undefined;
 
@@ -85,6 +88,7 @@ export class AuthController {
 
   @Post('logout')
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Logout' })
   async logout(@Req() req: Request, @Res() res: Response) {
     const refreshToken = req.cookies?.refreshToken as string | undefined;
 
@@ -105,6 +109,7 @@ export class AuthController {
   @Post('reset-password')
   @ApiBearerAuth()
   @ApiBody({ type: ChangePasswordDto })
+  @ApiOperation({ summary: 'Reset password' })
   async resetPassword(@Body() resetPasswordDto: ChangePasswordDto) {
     const { token } = resetPasswordDto;
 

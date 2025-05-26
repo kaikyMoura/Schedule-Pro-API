@@ -7,8 +7,8 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
-import { AllowedRole } from 'src/user/decorators/role.decorator';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Roles } from 'src/user/decorators/role.decorator';
 import { CreateServiceItemDto } from './dtos/create-service-item.dto';
 import { UpdateServiceItemDto } from './dtos/update-service-item.dto';
 import { ServiceItemService } from './service-item.service';
@@ -20,6 +20,7 @@ export class ServiceItemController {
 
   @Get()
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all available service items' })
   async findAll(page?: number, pageSize?: number) {
     const retrievedServices = await this.serviceItemService.retrieveAll();
 
@@ -49,20 +50,24 @@ export class ServiceItemController {
 
   @Get(':id')
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get a specific service item' })
   findOne(@Param('id') id: string) {
     return this.serviceItemService.retrieveById(id);
   }
 
   @Post()
   @ApiBody({ type: CreateServiceItemDto })
-  @AllowedRole('ADMIN')
+  @Roles('ADMIN')
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a new service item' })
   create(@Body() serviceItem: CreateServiceItemDto) {
     return this.serviceItemService.create(serviceItem);
   }
 
   @Put(':id')
+  @Roles('ADMIN')
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update a specific service item' })
   async update(
     @Param('id') id: string,
     @Body() updateServiceItemDto: UpdateServiceItemDto,
@@ -72,7 +77,9 @@ export class ServiceItemController {
   }
 
   @Delete(':id')
+  @Roles('ADMIN')
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete a specific service item' })
   async delete(@Param('id') id: string) {
     await this.serviceItemService.delete(id);
     return { message: 'Service deleted successfully' };
