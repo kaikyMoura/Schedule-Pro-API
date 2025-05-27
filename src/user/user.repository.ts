@@ -24,7 +24,7 @@ export class UserRepository {
           ? { create: data.availability }
           : undefined,
         appointments: undefined,
-        services: undefined,
+        staffServices: undefined,
         staffAppointments: undefined,
       },
     });

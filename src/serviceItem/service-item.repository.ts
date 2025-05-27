@@ -40,19 +40,6 @@ export class ServiceItemRepository {
   }
 
   /**
-   * Retrieves all ServiceItem objects associated with the given staffId.
-   *
-   * @param {string} staffId - The id of the staff member to retrieve ServiceItems for.
-   *
-   * @returns {Promise<ServiceItem[]>} - A promise that resolves to an array of ServiceItem objects associated with the given staff member.
-   */
-  async findAllStaffServiceItems(staffId: string): Promise<ServiceItem[]> {
-    return await this.prisma.serviceItem.findMany({
-      where: { staffId: staffId },
-    });
-  }
-
-  /**
    * Retrieves all ServiceItem objects in the database.
    *
    * @returns {Promise<ServiceItem[]>} - A promise that resolves to an array of ServiceItem objects.

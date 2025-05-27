@@ -28,15 +28,15 @@ model User {
   password  String
   phone     String   @unique
   photo     String?
-  role      Role
+  role      Role     @default(CUSTOMER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   appointments Appointment[] @relation("CustomerAppointments")
 
   // to user with Role STAFF
-  availability StaffAvailability[]
-  services     ServiceItem[]       @relation("StaffServices")
+  availability  StaffAvailability[]
+  staffServices StaffService[]
 
   staffAppointments Appointment[] @relation("StaffAppointments")
 
@@ -61,7 +61,7 @@ model Appointment {
   notes  String?
   date   DateTime
   time   String
-  status Status
+  status Status   @default(PENDING)
   price  Float
 
   // to users with Role CUSTOMER
@@ -86,12 +86,11 @@ model ServiceItem {
   price    Float
   duration Int
 
-  staffId      String
-  staff        User          @relation("StaffServices", fields: [staffId], references: [id])
-  appointments Appointment[]
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  appointments  Appointment[]
+  staffServices StaffService[]
 }
 
 model StaffAvailability {
@@ -106,4 +105,18 @@ model StaffAvailability {
   staff     User     @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@index([staffId])
+}
+
+model StaffService {
+  id        String      @id @default(uuid())
+  staff     User        @relation(fields: [staffId], references: [id])
+  staffId   String
+  service   ServiceItem @relation(fields: [serviceId], references: [id])
+  serviceId String
+
+  customPrice Float?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@unique([staffId, serviceId])
 }

@@ -27,7 +27,7 @@ export class BaseAppointmentDto {
   @IsNotEmpty()
   date: Date;
 
-  @ApiProperty({ example: '10:00' })
+  @ApiProperty({ example: '10:00 AM - 10:30 AM' })
   @IsString()
   @Matches(/^([0-1]\d|2[0-3]):([0-5]\d)$/)
   time: string;

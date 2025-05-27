@@ -14,7 +14,7 @@ import { UpdateServiceItemDto } from './dtos/update-service-item.dto';
 import { ServiceItemService } from './service-item.service';
 
 @ApiTags('ServiceItem')
-@Controller('service-item')
+@Controller('service-items')
 export class ServiceItemController {
   constructor(private readonly serviceItemService: ServiceItemService) {}
 

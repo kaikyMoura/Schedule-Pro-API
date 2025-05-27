@@ -102,6 +102,7 @@ export class AuthController {
 
   @Post('forgot-password')
   @Public()
+  @ApiOperation({ summary: 'Forgot password' })
   async forgotPassword(@Body('email') email: string) {
     return await this.authService.forgotPassword(email);
   }

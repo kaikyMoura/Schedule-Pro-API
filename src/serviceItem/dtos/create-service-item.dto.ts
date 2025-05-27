@@ -3,5 +3,6 @@ import { BaseServiceItemDto } from './base-service-item.dto';
 
 export class CreateServiceItemDto extends OmitType(BaseServiceItemDto, [
   'id',
-  'appointment',
+  'appointments',
+  'staffServices',
 ] as const) {}

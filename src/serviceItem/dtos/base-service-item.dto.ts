@@ -1,12 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsNumber,
   IsObject,
   IsOptional,
   IsString,
   IsUUID,
+  ValidateNested,
 } from 'class-validator';
 import { BaseAppointmentDto } from 'src/appointment/dto/base-appointment.dto';
+import { BaseStaffServiceDto } from 'src/staff-service/dtos/base-staff-service.dto';
 
 export class BaseServiceItemDto {
   @IsOptional()
@@ -25,10 +28,15 @@ export class BaseServiceItemDto {
   @IsNumber()
   duration: number;
 
-  @IsUUID()
-  staffId: string;
-
+  @ValidateNested({ each: true })
+  @Type(() => BaseAppointmentDto)
   @IsOptional()
   @IsObject()
-  appointment?: BaseAppointmentDto;
+  appointments?: BaseAppointmentDto[];
+
+  @ValidateNested({ each: true })
+  @Type(() => BaseStaffServiceDto)
+  @IsOptional()
+  @IsObject()
+  staffServices?: BaseStaffServiceDto[];
 }

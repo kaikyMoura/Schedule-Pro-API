@@ -161,7 +161,6 @@ exports.Prisma.ServiceItemScalarFieldEnum = {
   type: 'type',
   price: 'price',
   duration: 'duration',
-  staffId: 'staffId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -172,6 +171,15 @@ exports.Prisma.StaffAvailabilityScalarFieldEnum = {
   dayOfWeek: 'dayOfWeek',
   startTime: 'startTime',
   endTime: 'endTime',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.StaffServiceScalarFieldEnum = {
+  id: 'id',
+  staffId: 'staffId',
+  serviceId: 'serviceId',
+  customPrice: 'customPrice',
+  active: 'active',
   createdAt: 'createdAt'
 };
 
@@ -207,7 +215,8 @@ exports.Prisma.ModelName = {
   UserSession: 'UserSession',
   Appointment: 'Appointment',
   ServiceItem: 'ServiceItem',
-  StaffAvailability: 'StaffAvailability'
+  StaffAvailability: 'StaffAvailability',
+  StaffService: 'StaffService'
 };
 
 /**

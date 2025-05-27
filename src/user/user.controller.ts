@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Post, Put, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Put,
+  Req,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from 'src/common/decorators/public.decorator';
 import { ChangePasswordDto } from 'src/common/dtos/change-password-user.schema';
@@ -9,7 +20,7 @@ import { UserService } from './user.service';
 import { Roles } from './decorators/role.decorator';
 
 @ApiTags('User')
-@Controller('user')
+@Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
@@ -48,7 +59,7 @@ export class UserController {
   @Roles('ADMIN')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get user by id' })
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.userService.retrieveById(id);
   }
 
@@ -80,18 +91,33 @@ export class UserController {
   @Put(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a user' })
-  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+  async update(
+    @Req() req: CustomRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    if (req.user.id !== id) {
+      throw new UnauthorizedException(
+        'You are not allowed to change this password.',
+      );
+    }
     return await this.userService.update(id, updateUserDto);
   }
 
-  @Put(':id/password')
+  @Patch(':id/password')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a user password' })
   async updatePassword(
-    @Param('id') id: string,
+    @Req() req: CustomRequest,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body()
     changePasswordDto: ChangePasswordDto,
   ) {
+    if (req.user.id !== id) {
+      throw new UnauthorizedException(
+        'You are not allowed to change this password.',
+      );
+    }
     return await this.userService.changePassword(id, changePasswordDto);
   }
 }

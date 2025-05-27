@@ -11,12 +11,14 @@ import { EmailModule } from './common/services/email.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ServiceItemModule } from './serviceItem/service-item.module';
 import { StaffAvailabilityModule } from './staff-availability/staff-availability.module';
+import { StaffServiceModule } from './staff-service/staff-service.module';
 import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
     AuthModule,
     PrismaModule,
+    StaffServiceModule,
     UserModule,
     AppointmentModule,
     ServiceItemModule,

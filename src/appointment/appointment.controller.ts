@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Put,
@@ -16,12 +17,12 @@ import { Status } from 'prisma/app/generated/prisma/client';
 import { Roles } from 'src/user/decorators/role.decorator';
 
 @ApiTags('Appointment')
-@Controller('appointment')
+@Controller('appointments')
 export class AppointmentController {
   constructor(private readonly appointmentService: AppointmentService) {}
 
   @Get()
-  @Roles('CUSTOMER', 'ADMIN')
+  @Roles('ADMIN', 'STAFF')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all appointments' })
   async findAll(page?: number, pageSize?: number) {
@@ -56,7 +57,7 @@ export class AppointmentController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all appointments for a customer' })
   async findAllCustomerAppointments(
-    customerId: string,
+    @Param('customerId', ParseUUIDPipe) customerId: string,
     page?: number,
     pageSize?: number,
   ) {
@@ -91,7 +92,7 @@ export class AppointmentController {
   @Roles('STAFF', 'ADMIN')
   @ApiBearerAuth()
   async findAllStaffAppointments(
-    staffId: string,
+    @Param('staffId', ParseUUIDPipe) staffId: string,
     page?: number,
     pageSize?: number,
   ) {
@@ -125,7 +126,7 @@ export class AppointmentController {
   @Get(':id')
   @Roles('CUSTOMER', 'STAFF', 'ADMIN')
   @ApiBearerAuth()
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.appointmentService.retrieveById(id);
   }
 
@@ -141,7 +142,7 @@ export class AppointmentController {
   @Roles('CUSTOMER', 'ADMIN')
   @ApiBearerAuth()
   async update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updateAppointmentDto: UpdateAppointmentDto,
   ) {
     await this.appointmentService.update(id, updateAppointmentDto);
@@ -158,7 +159,10 @@ export class AppointmentController {
 
   @Patch(':id/status')
   @ApiBearerAuth()
-  async changeStatus(@Param('id') id: string, @Body('status') status: Status) {
+  async changeStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('status') status: Status,
+  ) {
     await this.appointmentService.changeStatus(id, status);
     return { message: 'Appointment status changed successfully' };
   }

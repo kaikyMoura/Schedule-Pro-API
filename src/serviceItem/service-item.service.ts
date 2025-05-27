@@ -1,14 +1,9 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
 import { ResponseModel } from 'src/common/models/response.model';
 import { UserService } from 'src/user/user.service';
 import { BaseServiceItemDto } from './dtos/base-service-item.dto';
 import { CreateServiceItemDto } from './dtos/create-service-item.dto';
-import { ServiceItemResponseDto } from './dtos/service-item-response.dto';
 import { UpdateServiceItemDto } from './dtos/update-service-item.dto';
 import { ServiceItemRepository } from './service-item.repository';
 
@@ -35,7 +30,6 @@ export class ServiceItemService {
       type: serviceItem.type,
       price: serviceItem.price,
       duration: serviceItem.duration,
-      staffId: serviceItem.staffId,
     }));
   }
 
@@ -69,7 +63,6 @@ export class ServiceItemService {
       type: retrivedServiceItem.type,
       price: retrivedServiceItem.price,
       duration: retrivedServiceItem.duration,
-      staffId: retrivedServiceItem.staffId,
     };
   }
 
@@ -98,29 +91,9 @@ export class ServiceItemService {
    */
   async create(
     serviceItem: CreateServiceItemDto,
-  ): Promise<ResponseModel<ServiceItemResponseDto, Error>> {
-    if (!serviceItem.type) {
+  ): Promise<ResponseModel<BaseServiceItemDto, Error>> {
+    if (!serviceItem.type || !serviceItem.price || !serviceItem.duration) {
       throw new MissingRequiredPropertiesException();
-    }
-
-    let staffName: string | undefined;
-
-    if (serviceItem.staffId) {
-      const staffResponse = await this.userService.retrieveById(
-        serviceItem.staffId,
-      );
-
-      if (!staffResponse) {
-        throw new NotFoundException('Staff not found');
-      }
-
-      const staff = staffResponse;
-
-      staffName = staff.name;
-
-      if (staff.role !== 'STAFF') {
-        throw new BadRequestException('User is not a staff member');
-      }
     }
 
     const newServiceItem = await this.serviceItemRepository.create(serviceItem);
@@ -131,7 +104,6 @@ export class ServiceItemService {
         type: newServiceItem.type,
         price: newServiceItem.price,
         duration: newServiceItem.duration,
-        staffName: staffName,
       },
     };
   }
