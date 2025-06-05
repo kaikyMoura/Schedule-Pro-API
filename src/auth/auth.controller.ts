@@ -10,12 +10,13 @@ import {
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import * as bcrypt from 'bcryptjs';
 import { Request, Response } from 'express';
-import { LoginUserDto } from 'src/user/dtos/login-user.dto';
-import { UserService } from '../user/user.service';
-import { AuthService } from './auth.service';
 import { Public } from 'src/common/decorators/public.decorator';
 import { ChangePasswordDto } from 'src/common/dtos/change-password-user.schema';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
+import { LoginUserDto } from 'src/user/dtos/login-user.dto';
+import { UserService } from '../user/user.service';
+import { AuthService } from './auth.service';
+import { TwilioService } from './utils/twilio.service';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -23,6 +24,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly userService: UserService,
+    private readonly twilioService: TwilioService,
   ) {}
 
   @Post('login')
@@ -128,5 +130,18 @@ export class AuthController {
     }
 
     return { message: result };
+  }
+
+  @Public()
+  @Post('send-otp')
+  async sendOtp(@Body('phone') email: string) {
+    return await this.twilioService.createVerification(email);
+  }
+
+  @Public()
+  @ApiBody({ type: 'string' })
+  @Post('verify-otp')
+  async verifyOtp(@Body('email') email: string, @Body('otp') otp: string) {
+    return await this.twilioService.createVerificationCheck(email, otp);
   }
 }
