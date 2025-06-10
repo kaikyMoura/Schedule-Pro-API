@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from 'src/common/decorators/public.decorator';
-import { ChangePasswordDto } from 'src/common/dtos/change-password-user.schema';
+import { ChangePasswordDto } from 'src/user/dtos/change-password-user.schema';
 import { CustomRequest } from 'src/common/types/custom-request';
 import { CreateUserDto } from './dtos/create-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';

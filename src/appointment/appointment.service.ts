@@ -9,10 +9,10 @@ import { ResponseModel } from 'src/common/models/response.model';
 import { BaseUserDto } from 'src/user/dtos/base-user.dto';
 import { UserService } from 'src/user/user.service';
 import { AppointmentRepository } from './appointment.repository';
-import { AppointmentResponseDto } from './dto/appointment-response.dto';
-import { BaseAppointmentDto } from './dto/base-appointment.dto';
-import { CreateAppointmentDto } from './dto/create-appointment.dto';
-import { UpdateAppointmentDto } from './dto/update-appointment.dto';
+import { AppointmentResponseDto } from './dtos/appointment-response.dto';
+import { BaseAppointmentDto } from './dtos/base-appointment.dto';
+import { CreateAppointmentDto } from './dtos/create-appointment.dto';
+import { UpdateAppointmentDto } from './dtos/update-appointment.dto';
 
 @Injectable()
 export class AppointmentService {

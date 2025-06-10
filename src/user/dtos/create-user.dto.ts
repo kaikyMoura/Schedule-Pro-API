@@ -2,7 +2,7 @@ import { OmitType } from '@nestjs/swagger';
 import { BaseUserDto } from './base-user.dto';
 import { Type } from 'class-transformer';
 import { IsOptional, ValidateNested } from 'class-validator';
-import { CreateAppointmentDto } from 'src/appointment/dto/create-appointment.dto';
+import { CreateAppointmentDto } from 'src/appointment/dtos/create-appointment.dto';
 import { CreateServiceItemDto } from 'src/serviceItem/dtos/create-service-item.dto';
 
 export class CreateUserDto extends OmitType(BaseUserDto, [

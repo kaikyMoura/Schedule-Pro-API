@@ -4,11 +4,11 @@ import { hash } from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import { JwtPayload } from 'jsonwebtoken';
 import { User } from 'prisma/app/generated/prisma/client';
-import { ChangePasswordDto } from 'src/common/dtos/change-password-user.schema';
+import { ChangePasswordDto } from 'src/user/dtos/change-password-user.schema';
 import { InvalidCredentialsException } from 'src/common/exceptions/invalid-credentials.exception';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
 import { UserNotFoundException } from 'src/common/exceptions/user-not-found.exception';
-import { EmailService } from 'src/common/services/email.service';
+import { MailService } from 'src/mail/mail.service';
 import { UserSessionRepository } from 'src/user-session/user-session.repository';
 import { BaseUserDto } from 'src/user/dtos/base-user.dto';
 import { UserRepository } from 'src/user/user.repository';
@@ -19,7 +19,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly userSessionRepository: UserSessionRepository,
     private readonly userRepository: UserRepository,
-    private readonly emailService: EmailService,
+    private readonly emailService: MailService,
   ) {}
 
   /**
@@ -33,10 +33,11 @@ export class AuthService {
    */
   generateAccessToken<T extends { id: string; name: string; email: string }>(
     payload: T,
+    expiresIn?: string,
   ): { token: string; expiresIn: string } {
     const token = this.jwtService.sign(
       { id: payload.id, name: payload.name, email: payload.email },
-      { secret: process.env.JWT_SECRET_KEY, expiresIn: '15m' },
+      { secret: process.env.JWT_SECRET_KEY, expiresIn: expiresIn ?? '15m' },
     );
 
     return { token, expiresIn: '15m' };
@@ -216,11 +217,23 @@ export class AuthService {
       email: retrievedCustomer.email,
     });
 
-    await this.emailService.sendResetPasswordEmail(
-      retrievedCustomer.email,
-      retrievedCustomer.name,
-      token,
-    );
+    const resetLink = `http://localhost:3000/reset-password?token=${token}`;
+
+    await this.emailService.sendMail({
+      to: email,
+      subject: 'Password Reset',
+      html: `
+            <p>Hello ${retrievedCustomer.name},</p>
+            <p>You have requested to reset your password.</p>
+            <br />
+            <p>Please click the link below to reset your password:</p>
+            <p><a href="${resetLink}">Reset Password</a></p>
+            <br />
+            <p>This link will expire in 1 hour.</p>
+            <br />
+            <p>If you did not request this, please ignore this email.</p>
+        `,
+    });
 
     return 'Password reset email sent successfully';
   }
@@ -258,5 +271,54 @@ export class AuthService {
     );
 
     return 'Password reset successfully';
+  }
+
+  async sendVerificationEmail(email: string): Promise<string> {
+    if (!email) {
+      throw new MissingRequiredPropertiesException();
+    }
+
+    const retrievedCustomer =
+      await this.userRepository.findUniqueByEmail(email);
+
+    if (!retrievedCustomer) {
+      throw new UserNotFoundException('User not found');
+    }
+
+    if (
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+      retrievedCustomer.email != email
+    ) {
+      throw new InvalidCredentialsException();
+    }
+
+    const { token } = this.generateAccessToken(
+      {
+        id: retrievedCustomer.id,
+        name: retrievedCustomer.name,
+        email: retrievedCustomer.email,
+      },
+      '1h',
+    );
+
+    const verificationLink = `http://localhost:3000/verify-email?token=${token}`;
+
+    await this.emailService.sendMail({
+      to: email,
+      subject: 'Email Verification',
+      html: `
+            <p>Hello ${retrievedCustomer.name},</p>
+            <p>You need to verify your email.</p>
+            <br />
+            <p>Please click the link below to verify your email:</p>
+            <p><a href="${verificationLink}">Verify Email</a></p>
+            <br />
+            <p>This link will expire in 1 hour.</p>
+            <br />
+            <p>If you did not request this, please ignore this email.</p>
+        `,
+    });
+
+    return 'Verification email sent successfully';
   }
 }

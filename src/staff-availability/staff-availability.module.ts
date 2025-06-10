@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from 'src/auth/auth.module';
-import { EmailService } from 'src/common/services/email.service';
+import { MailService } from 'src/mail/mail.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { StaffAvailabilityRepository } from './staff-availability.repository';
 import { StaffAvailabilityResolver } from './staff-availability.resolver';
@@ -17,7 +17,7 @@ import { UserRepository } from 'src/user/user.repository';
     StaffAvailabilityResolver,
     UserService,
     UserRepository,
-    EmailService,
+    MailService,
     PrismaService,
   ],
   controllers: [StaffAvailabilityController],

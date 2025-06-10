@@ -8,7 +8,7 @@ import {
   IsUUID,
   ValidateNested,
 } from 'class-validator';
-import { BaseAppointmentDto } from 'src/appointment/dto/base-appointment.dto';
+import { BaseAppointmentDto } from 'src/appointment/dtos/base-appointment.dto';
 import { BaseStaffServiceDto } from 'src/staff-service/dtos/base-staff-service.dto';
 
 export class BaseServiceItemDto {

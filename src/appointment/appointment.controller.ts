@@ -11,8 +11,8 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AppointmentService } from './appointment.service';
-import { CreateAppointmentDto } from './dto/create-appointment.dto';
-import { UpdateAppointmentDto } from './dto/update-appointment.dto';
+import { CreateAppointmentDto } from './dtos/create-appointment.dto';
+import { UpdateAppointmentDto } from './dtos/update-appointment.dto';
 import { Status } from 'prisma/app/generated/prisma/client';
 import { Roles } from 'src/user/decorators/role.decorator';
 

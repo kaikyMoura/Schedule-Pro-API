@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from 'src/auth/auth.module';
-import { EmailService } from 'src/common/services/email.service';
+import { MailService } from 'src/mail/mail.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserRepository } from './user.repository';
 import { UserService } from './user.service';
@@ -13,7 +13,7 @@ import { UserResolver } from './user.resolver';
     UserService,
     UserRepository,
     UserResolver,
-    EmailService,
+    MailService,
     PrismaService,
   ],
   controllers: [UserController],

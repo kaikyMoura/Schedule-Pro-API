@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { EmailService } from 'src/common/services/email.service';
+import { MailService } from 'src/mail/mail.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserSessionRepository } from 'src/user-session/user-session.repository';
 import { UserRepository } from 'src/user/user.repository';
@@ -14,7 +14,7 @@ import { TwilioService } from './utils/twilio.service';
   providers: [
     AuthController,
     AuthService,
-    EmailService,
+    MailService,
     JwtService,
     UserService,
     TwilioService,

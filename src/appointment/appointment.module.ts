@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from 'src/auth/auth.module';
-import { EmailService } from 'src/common/services/email.service';
+import { MailService } from 'src/mail/mail.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AppointmentController } from './appointment.controller';
 import { AppointmentRepository } from './appointment.repository';
@@ -15,7 +15,7 @@ import { UserRepository } from 'src/user/user.repository';
     AppointmentService,
     AppointmentRepository,
     AppointmentResolver,
-    EmailService,
+    MailService,
     PrismaService,
     UserService,
     UserRepository,

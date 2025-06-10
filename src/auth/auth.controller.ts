@@ -7,16 +7,23 @@ import {
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiTags,
+  OmitType,
+} from '@nestjs/swagger';
 import * as bcrypt from 'bcryptjs';
 import { Request, Response } from 'express';
 import { Public } from 'src/common/decorators/public.decorator';
-import { ChangePasswordDto } from 'src/common/dtos/change-password-user.schema';
+import { ChangePasswordDto } from 'src/user/dtos/change-password-user.schema';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
 import { LoginUserDto } from 'src/user/dtos/login-user.dto';
 import { UserService } from '../user/user.service';
 import { AuthService } from './auth.service';
 import { TwilioService } from './utils/twilio.service';
+import { BaseOtpDto } from './dtos/base-otp.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -103,10 +110,19 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @ApiBody({ type: OmitType<LoginUserDto, 'password'> })
   @Public()
   @ApiOperation({ summary: 'Forgot password' })
   async forgotPassword(@Body('email') email: string) {
     return await this.authService.forgotPassword(email);
+  }
+
+  @Post('verify-email')
+  @ApiBody({ type: OmitType<LoginUserDto, 'password'> })
+  @Public()
+  @ApiOperation({ summary: 'Verify email' })
+  async verifyEmail(@Body('email') email: string) {
+    return await this.authService.sendVerificationEmail(email);
   }
 
   @Post('reset-password')
@@ -133,15 +149,18 @@ export class AuthController {
   }
 
   @Public()
+  @ApiBody({
+    schema: { type: 'object', properties: { phone: { type: 'string' } } },
+  })
   @Post('send-otp')
-  async sendOtp(@Body('phone') email: string) {
-    return await this.twilioService.createVerification(email);
+  async sendOtp(@Body('phone') phone: string) {
+    return await this.twilioService.createVerification(phone);
   }
 
   @Public()
-  @ApiBody({ type: 'string' })
+  @ApiBody({ type: BaseOtpDto })
   @Post('verify-otp')
-  async verifyOtp(@Body('email') email: string, @Body('otp') otp: string) {
-    return await this.twilioService.createVerificationCheck(email, otp);
+  async verifyOtp(@Body('phone') phone: string, @Body('otp') otp: string) {
+    return await this.twilioService.createVerificationCheck(phone, otp);
   }
 }

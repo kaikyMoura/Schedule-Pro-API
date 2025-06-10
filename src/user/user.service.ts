@@ -2,7 +2,7 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { compare, hash } from 'bcryptjs';
 import { Role } from 'prisma/app/generated/prisma/client';
 import { AuthService } from 'src/auth/auth.service';
-import { ChangePasswordDto } from 'src/common/dtos/change-password-user.schema';
+import { ChangePasswordDto } from 'src/user/dtos/change-password-user.schema';
 import { InvalidCredentialsException } from 'src/common/exceptions/invalid-credentials.exception';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
 import { UserAlreadyRegisteredException } from 'src/common/exceptions/user-already-registered.exception';

@@ -7,7 +7,7 @@ import { AppointmentModule } from './appointment/appointment.module';
 import { AuthGuard } from './auth/auth.guard';
 import { AuthModule } from './auth/auth.module';
 import { RolesGuard } from './common/guards/role.guard';
-import { EmailModule } from './common/services/email.module';
+import { MailModule } from './mail/mail.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ServiceItemModule } from './serviceItem/service-item.module';
 import { StaffAvailabilityModule } from './staff-availability/staff-availability.module';
@@ -23,7 +23,7 @@ import { UserModule } from './user/user.module';
     AppointmentModule,
     ServiceItemModule,
     StaffAvailabilityModule,
-    EmailModule,
+    MailModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
