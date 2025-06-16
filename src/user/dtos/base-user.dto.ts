@@ -46,6 +46,10 @@ export class BaseUserDto {
   role: Role;
 
   @IsOptional()
+  @IsString()
+  verifiedAt?: Date | null;
+
+  @IsOptional()
   @IsObject()
   appointments?: BaseAppointmentDto[];
 

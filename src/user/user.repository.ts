@@ -26,6 +26,7 @@ export class UserRepository {
         appointments: undefined,
         staffServices: undefined,
         staffAppointments: undefined,
+        verifiedAt: undefined,
       },
     });
     return {
@@ -173,6 +174,23 @@ export class UserRepository {
       where: { id },
       data: { password: password },
     });
+  }
+
+  /**
+   * Verifies a User in the database.
+   *
+   * @param {string} id - The unique identifier of the User to verify.
+   *
+   * @returns {Promise<void>} - A promise that resolves when the User has been verified.
+   *
+   * @throws {Prisma.NotFoundError} - Thrown if the User with the given id does not exist in the database.
+   */
+  async verifyUser(id: string): Promise<User> {
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: { verifiedAt: new Date() },
+    });
+    return user;
   }
 
   /**

@@ -1,24 +1,21 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from 'src/auth/auth.module';
-import { MailService } from 'src/mail/mail.service';
+import { MailModule } from 'src/mail/mail.module';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { ServiceItemModule } from 'src/serviceItem/service-item.module';
+import { UserModule } from 'src/user/user.module';
 import { AppointmentController } from './appointment.controller';
 import { AppointmentRepository } from './appointment.repository';
-import { AppointmentService } from './appointment.service';
 import { AppointmentResolver } from './appointment.resolver';
-import { UserService } from 'src/user/user.service';
-import { UserRepository } from 'src/user/user.repository';
+import { AppointmentService } from './appointment.service';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, UserModule, MailModule, ServiceItemModule],
   providers: [
     AppointmentService,
     AppointmentRepository,
     AppointmentResolver,
-    MailService,
     PrismaService,
-    UserService,
-    UserRepository,
   ],
   controllers: [AppointmentController],
   exports: [AppointmentService],

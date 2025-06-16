@@ -14,16 +14,17 @@ import {
   ApiTags,
   OmitType,
 } from '@nestjs/swagger';
-import * as bcrypt from 'bcryptjs';
 import { Request, Response } from 'express';
 import { Public } from 'src/common/decorators/public.decorator';
-import { ChangePasswordDto } from 'src/user/dtos/change-password-user.schema';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
+import { ChangePasswordDto } from 'src/user/dtos/change-password-user.schema';
 import { LoginUserDto } from 'src/user/dtos/login-user.dto';
 import { UserService } from '../user/user.service';
 import { AuthService } from './auth.service';
-import { TwilioService } from './utils/twilio.service';
 import { BaseOtpDto } from './dtos/base-otp.dto';
+import { TwilioService } from './utils/twilio.service';
+
+class RequestEmailDto extends OmitType(LoginUserDto, ['password'] as const) {}
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -43,10 +44,12 @@ export class AuthController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const user = await this.userService.retrieveByEmail(body.email);
+    const user = await this.userService._validateCredentials(body);
 
-    if (!user || !(await bcrypt.compare(body.password, user.password))) {
-      throw new UnauthorizedException('Invalid credentials');
+    await this.userService.verifyUser(body.email);
+
+    if (user.verifiedAt === null) {
+      throw new UnauthorizedException('You need to verify your email first.');
     }
 
     const tokens = await this.authService.createSession(
@@ -59,7 +62,7 @@ export class AuthController {
       httpOnly: true,
       secure: true,
       sameSite: 'strict',
-      path: '/auth/refresh',
+      path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -85,7 +88,7 @@ export class AuthController {
       httpOnly: true,
       secure: true,
       sameSite: 'strict',
-      path: '/auth/refresh',
+      path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -105,7 +108,7 @@ export class AuthController {
       await this.authService.revokeSession(refreshToken);
     }
 
-    res.clearCookie('refreshToken', { path: '/auth/refresh' });
+    res.clearCookie('refreshToken', { path: '/' });
     res.status(204).send();
   }
 
@@ -117,29 +120,31 @@ export class AuthController {
     return await this.authService.forgotPassword(email);
   }
 
-  @Post('verify-email')
-  @ApiBody({ type: OmitType<LoginUserDto, 'password'> })
+  @Post('send-verify-email')
+  @ApiBody({ type: RequestEmailDto })
   @Public()
   @ApiOperation({ summary: 'Verify email' })
   async verifyEmail(@Body('email') email: string) {
     return await this.authService.sendVerificationEmail(email);
   }
 
+  @Post('verify-email')
+  @ApiBody({ type: RequestEmailDto })
+  @ApiOperation({ summary: 'Verify email' })
+  async verifyEmailToken(@Body('email') email: string) {
+    if (!email) {
+      throw new MissingRequiredPropertiesException('Email is missing');
+    }
+
+    return await this.userService.verifyUser(email);
+  }
+
   @Post('reset-password')
-  @ApiBearerAuth()
+  @Public()
   @ApiBody({ type: ChangePasswordDto })
   @ApiOperation({ summary: 'Reset password' })
   async resetPassword(@Body() resetPasswordDto: ChangePasswordDto) {
-    const { token } = resetPasswordDto;
-
-    if (!token) {
-      throw new MissingRequiredPropertiesException('Token is missing');
-    }
-
-    const result = await this.authService.resetPassword(
-      token,
-      resetPasswordDto,
-    );
+    const result = await this.authService.resetPassword(resetPasswordDto);
 
     if (!result) {
       throw new BadRequestException('Password reset failed');

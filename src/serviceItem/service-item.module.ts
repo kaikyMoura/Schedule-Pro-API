@@ -1,25 +1,22 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from 'src/auth/auth.module';
-import { MailService } from 'src/mail/mail.service';
+import { MailModule } from 'src/mail/mail.module';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { UserModule } from 'src/user/user.module';
 import { ServiceItemController } from './service-item.controller';
 import { ServiceItemRepository } from './service-item.repository';
-import { ServiceItemService } from './service-item.service';
 import { ServiceItemResolver } from './service-item.resolver';
-import { UserRepository } from 'src/user/user.repository';
-import { UserService } from 'src/user/user.service';
+import { ServiceItemService } from './service-item.service';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, UserModule, MailModule],
   providers: [
     ServiceItemService,
     ServiceItemRepository,
     ServiceItemResolver,
-    MailService,
     PrismaService,
-    UserService,
-    UserRepository,
   ],
   controllers: [ServiceItemController],
+  exports: [ServiceItemService],
 })
 export class ServiceItemModule {}

@@ -74,10 +74,10 @@ export class UserController {
   @Get('me')
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Gets current user by email',
+    summary: 'Retrieve the currently authenticated user',
   })
   findMe(@Req() req: CustomRequest) {
-    return this.userService.retrieveByEmail(req.user.email);
+    return this.userService.retrieveById(req.user.id);
   }
 
   @Post()

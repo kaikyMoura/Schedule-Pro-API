@@ -6,6 +6,8 @@ import {
 import { Role, Status } from 'prisma/app/generated/prisma/client';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
 import { ResponseModel } from 'src/common/models/response.model';
+import { MailService } from 'src/mail/mail.service';
+import { ServiceItemService } from 'src/serviceItem/service-item.service';
 import { BaseUserDto } from 'src/user/dtos/base-user.dto';
 import { UserService } from 'src/user/user.service';
 import { AppointmentRepository } from './appointment.repository';
@@ -19,6 +21,8 @@ export class AppointmentService {
   constructor(
     private readonly appointmentRepository: AppointmentRepository,
     private readonly userService: UserService,
+    private readonly mailService: MailService,
+    private readonly serviceItemService: ServiceItemService,
   ) {}
 
   /**
@@ -233,6 +237,24 @@ export class AppointmentService {
     const newAppointment = await this.appointmentRepository.create({
       ...appointment,
       staffId: selectedStaffId,
+    });
+
+    const service = await this.serviceItemService.retrieveById(
+      newAppointment.serviceId,
+    );
+
+    if (!service) {
+      throw new NotFoundException('Service not found');
+    }
+
+    await this.mailService.sendMail({
+      to: appointment.customerId,
+      from: 'Schedule Pro',
+      subject: 'New Appointment',
+      html: `<h1>New Appointment</h1>
+      <p>You have a new appointment with ${staffName}</p>
+      <p>Service: ${service.type}</p>
+      <p>Date: ${newAppointment.date.toISOString()}</p><p>Time: ${newAppointment.time}</p>`,
     });
 
     return {

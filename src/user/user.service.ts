@@ -1,17 +1,24 @@
-import { ConflictException, Injectable } from '@nestjs/common';
-import { compare, hash } from 'bcryptjs';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import bcrypt, { compare, hash } from 'bcryptjs';
 import { Role } from 'prisma/app/generated/prisma/client';
 import { AuthService } from 'src/auth/auth.service';
-import { ChangePasswordDto } from 'src/user/dtos/change-password-user.schema';
 import { InvalidCredentialsException } from 'src/common/exceptions/invalid-credentials.exception';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
 import { UserAlreadyRegisteredException } from 'src/common/exceptions/user-already-registered.exception';
 import { UserNotFoundException } from 'src/common/exceptions/user-not-found.exception';
 import { ResponseModel } from 'src/common/models/response.model';
+import { ChangePasswordDto } from 'src/user/dtos/change-password-user.schema';
 import { BaseUserDto } from './dtos/base-user.dto';
 import { CreateUserDto } from './dtos/create-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { UserRepository } from './user.repository';
+import { LoginUserDto } from './dtos/login-user.dto';
 
 @Injectable()
 export class UserService {
@@ -119,7 +126,7 @@ export class UserService {
    * const user = await userService.retrieveByEmail('dYH2M@example.com');
    *
    */
-  async retrieveByEmail(email: string): Promise<BaseUserDto> {
+  async retrieveByEmail(email: string): Promise<Omit<BaseUserDto, 'password'>> {
     if (!email) {
       throw new MissingRequiredPropertiesException();
     }
@@ -134,7 +141,6 @@ export class UserService {
       id: retrivedUser.id,
       name: retrivedUser.name,
       email: retrivedUser.email,
-      password: retrivedUser.password,
       phone: retrivedUser.phone,
       photo: retrivedUser.photo!,
       role: retrivedUser.role,
@@ -163,6 +169,47 @@ export class UserService {
 
     if (!retrivedUser) {
       throw new UserNotFoundException('User not found');
+    }
+
+    return {
+      id: retrivedUser.id,
+      name: retrivedUser.name,
+      email: retrivedUser.email,
+      phone: retrivedUser.phone,
+      photo: retrivedUser.photo!,
+      role: retrivedUser.role,
+    };
+  }
+
+  /**
+   * Validates the given User credentials.
+   *
+   * @param {LoginUserDto} user - The User data to validate.
+   *
+   * @returns {Promise<Omit<BaseUserDto, 'password'>>} - A promise that resolves to the User data without the password if the
+   * credentials are valid, or throws an error if they are not.
+   *
+   * @throws {UserNotFoundException} - Thrown if no User with the given email is found in the database.
+   * @throws {InvalidCredentialsException} - Thrown if the email is invalid.
+   * @throws {UnauthorizedException} - Thrown if the given password does not match the User's password in the database.
+   */
+  async _validateCredentials(
+    user: LoginUserDto,
+  ): Promise<Omit<BaseUserDto, 'password'>> {
+    const { email, password } = user;
+
+    const retrivedUser = await this.userRepository.findUniqueByEmail(email);
+
+    if (!retrivedUser) {
+      throw new UserNotFoundException('User not found');
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new InvalidCredentialsException();
+    }
+
+    if (!(await bcrypt.compare(password, retrivedUser.password))) {
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     return {
@@ -309,5 +356,39 @@ export class UserService {
     const hashedNewPassword = await hash(changePasswordDto.newPassword, 10);
 
     await this.userRepository.updatePassword(id, hashedNewPassword);
+  }
+
+  /**
+   * Verifies a User in the database.
+   *
+   * @param {string} email - The email of the User to verify.
+   *
+   * @returns {Promise<string>} - A promise that resolves to a string 'User verified successfully' if the operation is successful.
+   *
+   * @throws {MissingRequiredPropertiesException} - Thrown if the email is missing or undefined.
+   * @throws {UserNotFoundException} - Thrown if the User with the given email does not exist in the database.
+   */
+  async verifyUser(email: string): Promise<string> {
+    const user = await this.retrieveByEmail(email);
+
+    if (!user.id) {
+      throw new UserNotFoundException('User not found');
+    }
+
+    if (user.verifiedAt) {
+      throw new BadRequestException('User already verified');
+    }
+
+    const retrievedUser = await this.userRepository.verifyUser(user.id);
+
+    if (!retrievedUser) {
+      throw new UserNotFoundException('User not found');
+    }
+
+    if (!retrievedUser.verifiedAt || retrievedUser.verifiedAt === null) {
+      throw new NotFoundException('Error verifying user');
+    }
+
+    return 'User verified successfully';
   }
 }

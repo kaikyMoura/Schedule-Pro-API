@@ -1480,6 +1480,7 @@ export namespace Prisma {
     phone: string | null
     photo: string | null
     role: $Enums.Role | null
+    verifiedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -1492,6 +1493,7 @@ export namespace Prisma {
     phone: string | null
     photo: string | null
     role: $Enums.Role | null
+    verifiedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -1504,6 +1506,7 @@ export namespace Prisma {
     phone: number
     photo: number
     role: number
+    verifiedAt: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -1518,6 +1521,7 @@ export namespace Prisma {
     phone?: true
     photo?: true
     role?: true
+    verifiedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -1530,6 +1534,7 @@ export namespace Prisma {
     phone?: true
     photo?: true
     role?: true
+    verifiedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -1542,6 +1547,7 @@ export namespace Prisma {
     phone?: true
     photo?: true
     role?: true
+    verifiedAt?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -1627,6 +1633,7 @@ export namespace Prisma {
     phone: string
     photo: string | null
     role: $Enums.Role
+    verifiedAt: Date | null
     createdAt: Date
     updatedAt: Date
     _count: UserCountAggregateOutputType | null
@@ -1656,6 +1663,7 @@ export namespace Prisma {
     phone?: boolean
     photo?: boolean
     role?: boolean
+    verifiedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     appointments?: boolean | User$appointmentsArgs<ExtArgs>
@@ -1674,6 +1682,7 @@ export namespace Prisma {
     phone?: boolean
     photo?: boolean
     role?: boolean
+    verifiedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["user"]>
@@ -1686,6 +1695,7 @@ export namespace Prisma {
     phone?: boolean
     photo?: boolean
     role?: boolean
+    verifiedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["user"]>
@@ -1698,11 +1708,12 @@ export namespace Prisma {
     phone?: boolean
     photo?: boolean
     role?: boolean
+    verifiedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "password" | "phone" | "photo" | "role" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "password" | "phone" | "photo" | "role" | "verifiedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     appointments?: boolean | User$appointmentsArgs<ExtArgs>
     availability?: boolean | User$availabilityArgs<ExtArgs>
@@ -1731,6 +1742,7 @@ export namespace Prisma {
       phone: string
       photo: string | null
       role: $Enums.Role
+      verifiedAt: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["user"]>
@@ -2168,6 +2180,7 @@ export namespace Prisma {
     readonly phone: FieldRef<"User", 'String'>
     readonly photo: FieldRef<"User", 'String'>
     readonly role: FieldRef<"User", 'Role'>
+    readonly verifiedAt: FieldRef<"User", 'DateTime'>
     readonly createdAt: FieldRef<"User", 'DateTime'>
     readonly updatedAt: FieldRef<"User", 'DateTime'>
   }
@@ -8374,6 +8387,7 @@ export namespace Prisma {
     phone: 'phone',
     photo: 'photo',
     role: 'role',
+    verifiedAt: 'verifiedAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -8581,6 +8595,7 @@ export namespace Prisma {
     phone?: StringFilter<"User"> | string
     photo?: StringNullableFilter<"User"> | string | null
     role?: EnumRoleFilter<"User"> | $Enums.Role
+    verifiedAt?: DateTimeNullableFilter<"User"> | Date | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     appointments?: AppointmentListRelationFilter
@@ -8598,6 +8613,7 @@ export namespace Prisma {
     phone?: SortOrder
     photo?: SortOrderInput | SortOrder
     role?: SortOrder
+    verifiedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     appointments?: AppointmentOrderByRelationAggregateInput
@@ -8618,6 +8634,7 @@ export namespace Prisma {
     password?: StringFilter<"User"> | string
     photo?: StringNullableFilter<"User"> | string | null
     role?: EnumRoleFilter<"User"> | $Enums.Role
+    verifiedAt?: DateTimeNullableFilter<"User"> | Date | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     appointments?: AppointmentListRelationFilter
@@ -8635,6 +8652,7 @@ export namespace Prisma {
     phone?: SortOrder
     photo?: SortOrderInput | SortOrder
     role?: SortOrder
+    verifiedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: UserCountOrderByAggregateInput
@@ -8653,6 +8671,7 @@ export namespace Prisma {
     phone?: StringWithAggregatesFilter<"User"> | string
     photo?: StringNullableWithAggregatesFilter<"User"> | string | null
     role?: EnumRoleWithAggregatesFilter<"User"> | $Enums.Role
+    verifiedAt?: DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
   }
@@ -9016,6 +9035,7 @@ export namespace Prisma {
     phone: string
     photo?: string | null
     role?: $Enums.Role
+    verifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     appointments?: AppointmentCreateNestedManyWithoutCustomerInput
@@ -9033,6 +9053,7 @@ export namespace Prisma {
     phone: string
     photo?: string | null
     role?: $Enums.Role
+    verifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     appointments?: AppointmentUncheckedCreateNestedManyWithoutCustomerInput
@@ -9050,6 +9071,7 @@ export namespace Prisma {
     phone?: StringFieldUpdateOperationsInput | string
     photo?: NullableStringFieldUpdateOperationsInput | string | null
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     appointments?: AppointmentUpdateManyWithoutCustomerNestedInput
@@ -9067,6 +9089,7 @@ export namespace Prisma {
     phone?: StringFieldUpdateOperationsInput | string
     photo?: NullableStringFieldUpdateOperationsInput | string | null
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     appointments?: AppointmentUncheckedUpdateManyWithoutCustomerNestedInput
@@ -9084,6 +9107,7 @@ export namespace Prisma {
     phone: string
     photo?: string | null
     role?: $Enums.Role
+    verifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -9096,6 +9120,7 @@ export namespace Prisma {
     phone?: StringFieldUpdateOperationsInput | string
     photo?: NullableStringFieldUpdateOperationsInput | string | null
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -9108,6 +9133,7 @@ export namespace Prisma {
     phone?: StringFieldUpdateOperationsInput | string
     photo?: NullableStringFieldUpdateOperationsInput | string | null
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -9507,6 +9533,17 @@ export namespace Prisma {
     not?: NestedEnumRoleFilter<$PrismaModel> | $Enums.Role
   }
 
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
   export type DateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -9571,6 +9608,7 @@ export namespace Prisma {
     phone?: SortOrder
     photo?: SortOrder
     role?: SortOrder
+    verifiedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -9583,6 +9621,7 @@ export namespace Prisma {
     phone?: SortOrder
     photo?: SortOrder
     role?: SortOrder
+    verifiedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -9595,6 +9634,7 @@ export namespace Prisma {
     phone?: SortOrder
     photo?: SortOrder
     role?: SortOrder
+    verifiedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -9643,6 +9683,20 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumRoleFilter<$PrismaModel>
     _max?: NestedEnumRoleFilter<$PrismaModel>
+  }
+
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -10059,6 +10113,10 @@ export namespace Prisma {
     set?: $Enums.Role
   }
 
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
+  }
+
   export type DateTimeFieldUpdateOperationsInput = {
     set?: Date | string
   }
@@ -10454,6 +10512,17 @@ export namespace Prisma {
     not?: NestedEnumRoleFilter<$PrismaModel> | $Enums.Role
   }
 
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
   export type NestedDateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -10529,6 +10598,20 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumRoleFilter<$PrismaModel>
     _max?: NestedEnumRoleFilter<$PrismaModel>
+  }
+
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -10939,6 +11022,7 @@ export namespace Prisma {
     phone: string
     photo?: string | null
     role?: $Enums.Role
+    verifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     appointments?: AppointmentCreateNestedManyWithoutCustomerInput
@@ -10955,6 +11039,7 @@ export namespace Prisma {
     phone: string
     photo?: string | null
     role?: $Enums.Role
+    verifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     appointments?: AppointmentUncheckedCreateNestedManyWithoutCustomerInput
@@ -10987,6 +11072,7 @@ export namespace Prisma {
     phone?: StringFieldUpdateOperationsInput | string
     photo?: NullableStringFieldUpdateOperationsInput | string | null
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     appointments?: AppointmentUpdateManyWithoutCustomerNestedInput
@@ -11003,6 +11089,7 @@ export namespace Prisma {
     phone?: StringFieldUpdateOperationsInput | string
     photo?: NullableStringFieldUpdateOperationsInput | string | null
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     appointments?: AppointmentUncheckedUpdateManyWithoutCustomerNestedInput
@@ -11019,6 +11106,7 @@ export namespace Prisma {
     phone: string
     photo?: string | null
     role?: $Enums.Role
+    verifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     availability?: StaffAvailabilityCreateNestedManyWithoutStaffInput
@@ -11035,6 +11123,7 @@ export namespace Prisma {
     phone: string
     photo?: string | null
     role?: $Enums.Role
+    verifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     availability?: StaffAvailabilityUncheckedCreateNestedManyWithoutStaffInput
@@ -11056,6 +11145,7 @@ export namespace Prisma {
     phone: string
     photo?: string | null
     role?: $Enums.Role
+    verifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     appointments?: AppointmentCreateNestedManyWithoutCustomerInput
@@ -11072,6 +11162,7 @@ export namespace Prisma {
     phone: string
     photo?: string | null
     role?: $Enums.Role
+    verifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     appointments?: AppointmentUncheckedCreateNestedManyWithoutCustomerInput
@@ -11129,6 +11220,7 @@ export namespace Prisma {
     phone?: StringFieldUpdateOperationsInput | string
     photo?: NullableStringFieldUpdateOperationsInput | string | null
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     availability?: StaffAvailabilityUpdateManyWithoutStaffNestedInput
@@ -11145,6 +11237,7 @@ export namespace Prisma {
     phone?: StringFieldUpdateOperationsInput | string
     photo?: NullableStringFieldUpdateOperationsInput | string | null
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     availability?: StaffAvailabilityUncheckedUpdateManyWithoutStaffNestedInput
@@ -11172,6 +11265,7 @@ export namespace Prisma {
     phone?: StringFieldUpdateOperationsInput | string
     photo?: NullableStringFieldUpdateOperationsInput | string | null
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     appointments?: AppointmentUpdateManyWithoutCustomerNestedInput
@@ -11188,6 +11282,7 @@ export namespace Prisma {
     phone?: StringFieldUpdateOperationsInput | string
     photo?: NullableStringFieldUpdateOperationsInput | string | null
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     appointments?: AppointmentUncheckedUpdateManyWithoutCustomerNestedInput
@@ -11329,6 +11424,7 @@ export namespace Prisma {
     phone: string
     photo?: string | null
     role?: $Enums.Role
+    verifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     appointments?: AppointmentCreateNestedManyWithoutCustomerInput
@@ -11345,6 +11441,7 @@ export namespace Prisma {
     phone: string
     photo?: string | null
     role?: $Enums.Role
+    verifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     appointments?: AppointmentUncheckedCreateNestedManyWithoutCustomerInput
@@ -11377,6 +11474,7 @@ export namespace Prisma {
     phone?: StringFieldUpdateOperationsInput | string
     photo?: NullableStringFieldUpdateOperationsInput | string | null
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     appointments?: AppointmentUpdateManyWithoutCustomerNestedInput
@@ -11393,6 +11491,7 @@ export namespace Prisma {
     phone?: StringFieldUpdateOperationsInput | string
     photo?: NullableStringFieldUpdateOperationsInput | string | null
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     appointments?: AppointmentUncheckedUpdateManyWithoutCustomerNestedInput
@@ -11409,6 +11508,7 @@ export namespace Prisma {
     phone: string
     photo?: string | null
     role?: $Enums.Role
+    verifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     appointments?: AppointmentCreateNestedManyWithoutCustomerInput
@@ -11425,6 +11525,7 @@ export namespace Prisma {
     phone: string
     photo?: string | null
     role?: $Enums.Role
+    verifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     appointments?: AppointmentUncheckedCreateNestedManyWithoutCustomerInput
@@ -11482,6 +11583,7 @@ export namespace Prisma {
     phone?: StringFieldUpdateOperationsInput | string
     photo?: NullableStringFieldUpdateOperationsInput | string | null
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     appointments?: AppointmentUpdateManyWithoutCustomerNestedInput
@@ -11498,6 +11600,7 @@ export namespace Prisma {
     phone?: StringFieldUpdateOperationsInput | string
     photo?: NullableStringFieldUpdateOperationsInput | string | null
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     appointments?: AppointmentUncheckedUpdateManyWithoutCustomerNestedInput

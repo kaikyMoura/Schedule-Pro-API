@@ -17,5 +17,6 @@ import { UserResolver } from './user.resolver';
     PrismaService,
   ],
   controllers: [UserController],
+  exports: [UserService],
 })
 export class UserModule {}

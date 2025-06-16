@@ -40,7 +40,7 @@ export class AuthService {
       { secret: process.env.JWT_SECRET_KEY, expiresIn: expiresIn ?? '15m' },
     );
 
-    return { token, expiresIn: '15m' };
+    return { token, expiresIn: expiresIn ?? '15m' };
   }
 
   /**
@@ -60,7 +60,7 @@ export class AuthService {
   /**
    * Creates a new user session by generating a refresh token and access token.
    *
-   * @param {User} user - The user for whom the session is being created.
+   * @param {Omit<BaseUserDto, 'password'>} user - The user data to be associated with the session. Omits the password field.
    * @param {string} userAgent - The user agent string from the request header.
    * @param {string} ip - The IP address from which the request originated.
    *
@@ -68,7 +68,7 @@ export class AuthService {
    * and the expiry time of the access token.
    */
   async createSession(
-    user: BaseUserDto,
+    user: Omit<BaseUserDto, 'password'>,
     userAgent: string,
     ip?: string,
   ): Promise<{ accessToken: string; refreshToken: string; expiresIn: string }> {
@@ -160,7 +160,9 @@ export class AuthService {
    */
   async verifyToken<T extends object>(token: string): Promise<T> {
     try {
-      return await this.jwtService.verifyAsync<T>(token);
+      return await this.jwtService.verifyAsync<T>(token, {
+        secret: process.env.JWT_SECRET_KEY,
+      });
     } catch {
       throw new UnauthorizedException('Invalid or expired token');
     }
@@ -211,11 +213,14 @@ export class AuthService {
       throw new InvalidCredentialsException();
     }
 
-    const { token } = this.generateAccessToken({
-      id: retrievedCustomer.id,
-      name: retrievedCustomer.name,
-      email: retrievedCustomer.email,
-    });
+    const { token } = this.generateAccessToken(
+      {
+        id: retrievedCustomer.id,
+        name: retrievedCustomer.name,
+        email: retrievedCustomer.email,
+      },
+      '1h',
+    );
 
     const resetLink = `http://localhost:3000/reset-password?token=${token}`;
 
@@ -249,30 +254,40 @@ export class AuthService {
    * @throws {MissingRequiredPropertiesException} - Thrown if the token or new password is missing or undefined.
    * @throws {UserNotFoundException} - Thrown if the User with the given token does not exist in the database.
    */
-  async resetPassword(
-    token: string,
-    resetPasswordDto: ChangePasswordDto,
-  ): Promise<string> {
-    if (!token || !resetPasswordDto.newPassword) {
+  async resetPassword(resetPasswordDto: ChangePasswordDto): Promise<string> {
+    const { token, newPassword } = resetPasswordDto;
+
+    if (!token || newPassword) {
       throw new MissingRequiredPropertiesException();
     }
 
-    const retrievedCustomer = await this.verifyToken<User>(token);
+    const retrievedUser = await this.verifyToken<User>(token);
 
-    if (!retrievedCustomer) {
+    if (!retrievedUser) {
       throw new UserNotFoundException('User not found');
     }
 
-    const hashedNewPassword = await hash(resetPasswordDto.newPassword, 10);
+    const hashedNewPassword = await hash(newPassword, 10);
 
     await this.userRepository.updatePassword(
-      retrievedCustomer.id,
+      retrievedUser.id,
       hashedNewPassword,
     );
 
     return 'Password reset successfully';
   }
 
+  /**
+   * Sends an email verification link to the given email address if a User with that address exists.
+   *
+   * @param {string} email - The email address of the User to send the verification email to.
+   *
+   * @returns {Promise<string>} - A promise that resolves to a string 'Verification email sent successfully' if the operation is successful.
+   *
+   * @throws {MissingRequiredPropertiesException} - Thrown if the email address is missing or undefined.
+   * @throws {UserNotFoundException} - Thrown if the User with the given email address does not exist in the database.
+   * @throws {InvalidCredentialsException} - Thrown if the given email address is invalid.
+   */
   async sendVerificationEmail(email: string): Promise<string> {
     if (!email) {
       throw new MissingRequiredPropertiesException();

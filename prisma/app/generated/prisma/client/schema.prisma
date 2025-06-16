@@ -22,15 +22,17 @@ enum Role {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  phone     String   @unique
-  photo     String?
-  role      Role     @default(CUSTOMER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id       String  @id @default(uuid())
+  name     String
+  email    String  @unique
+  password String
+  phone    String  @unique
+  photo    String?
+  role     Role    @default(CUSTOMER)
+
+  verifiedAt DateTime? @map("verified_at")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   appointments Appointment[] @relation("CustomerAppointments")
 
