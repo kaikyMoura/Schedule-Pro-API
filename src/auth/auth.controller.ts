@@ -113,7 +113,7 @@ export class AuthController {
   }
 
   @Post('forgot-password')
-  @ApiBody({ type: OmitType<LoginUserDto, 'password'> })
+  @ApiBody({ type: RequestEmailDto })
   @Public()
   @ApiOperation({ summary: 'Forgot password' })
   async forgotPassword(@Body('email') email: string) {
