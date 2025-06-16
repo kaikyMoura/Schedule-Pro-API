@@ -56,8 +56,7 @@ COPY --chown=node:node --from=build /usr/src/app/prisma ./prisma
 COPY --chown=node:node --from=build /usr/src/app/package.json .
 COPY --chown=node:node --from=build /usr/src/app/dist ./dist
 
-# Define and expose the application port
-ENV PORT=5000
+# Expose the application port
 EXPOSE ${PORT}
 
 # Command to apply migrations and then start the application.
