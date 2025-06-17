@@ -3,7 +3,7 @@
 # 🗓️ Schedule Pro API
 
 
-**Schedule-Pro-API** is an ...
+**Schedule-Pro-API** is the backend service for the Schedule Pro platform. It provides robust authentication, session management, role-based access control (RBAC), email notifications via SendGrid, and OTP-based verification using Twilio. This API ensures secure user management and communication flows for the application.
 
 </div>
 
@@ -19,7 +19,12 @@
 </div>
 
 ## 1. About the Project
-...
+
+This project serves as the API implementation for Schedule Pro, a modern appointment and scheduling management system designed to streamline operations for service-based businesses.
+
+Built with NestJS, Node.js, TypeScript, Prisma, SendGrid, and Twilio, the Schedule Pro API provides a secure and scalable backend for managing users, sessions, and appointments.
+
+The API includes robust authentication with JWT, role-based access control (RBAC), secure session management, and integrates external services like SendGrid for transactional emails and Twilio for OTP-based verification. This architecture ensures a reliable communication flow, secure user authentication, and efficient permission management across the platform.
 
 ---
 
