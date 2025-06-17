@@ -1,26 +1,25 @@
 import { Module } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { MailService } from 'src/mail/mail.service';
+import { PassportModule } from '@nestjs/passport';
+import { MailModule } from 'src/mail/mail.module';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { UserSessionRepository } from 'src/user-session/user-session.repository';
-import { UserRepository } from 'src/user/user.repository';
-import { UserService } from 'src/user/user.service';
+import { UserSessionModule } from 'src/user-session/user-session.module';
+import { UserModule } from 'src/user/user.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { JwtStrategy } from './strategies/jwt.strategy';
+import { TokenService } from './token.service';
 import { TwilioService } from './utils/twilio.service';
 
 @Module({
+  imports: [PassportModule, MailModule, UserSessionModule, UserModule],
   controllers: [AuthController],
   providers: [
     AuthController,
     AuthService,
-    MailService,
-    JwtService,
-    UserService,
     TwilioService,
-    UserSessionRepository,
-    UserRepository,
+    TokenService,
     PrismaService,
+    JwtStrategy,
   ],
   exports: [AuthService, AuthController],
 })

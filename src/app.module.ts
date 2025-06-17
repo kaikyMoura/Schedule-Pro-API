@@ -1,18 +1,20 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AppointmentModule } from './appointment/appointment.module';
-import { AuthGuard } from './auth/auth.guard';
 import { AuthModule } from './auth/auth.module';
-import { RolesGuard } from './common/guards/role.guard';
+import { RolesGuard } from './auth/guards/roles.guard';
 import { MailModule } from './mail/mail.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ServiceItemModule } from './serviceItem/service-item.module';
 import { StaffAvailabilityModule } from './staff-availability/staff-availability.module';
 import { StaffServiceModule } from './staff-service/staff-service.module';
 import { UserModule } from './user/user.module';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { UserSessionModule } from './user-session/user-session.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -20,6 +22,7 @@ import { UserModule } from './user/user.module';
     PrismaModule,
     StaffServiceModule,
     UserModule,
+    UserSessionModule,
     AppointmentModule,
     ServiceItemModule,
     StaffAvailabilityModule,
@@ -27,11 +30,20 @@ import { UserModule } from './user/user.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      global: true,
+      useFactory: (config: ConfigService) => ({
+        secret: config.get('JWT_SECRET_KEY'),
+        signOptions: { expiresIn: config.get('JWT_EXPIRATION_TIME') },
+      }),
+    }),
   ],
   controllers: [AppController],
   providers: [
     AppService,
-    { provide: APP_GUARD, useClass: AuthGuard },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })

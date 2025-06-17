@@ -17,9 +17,8 @@ import {
 import { Request, Response } from 'express';
 import { Public } from 'src/common/decorators/public.decorator';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
-import { ChangePasswordDto } from 'src/user/dtos/change-password-user.schema';
 import { LoginUserDto } from 'src/user/dtos/login-user.dto';
-import { UserService } from '../user/user.service';
+import { ResetPasswordDto } from 'src/user/dtos/reset-password.dto';
 import { AuthService } from './auth.service';
 import { BaseOtpDto } from './dtos/base-otp.dto';
 import { TwilioService } from './utils/twilio.service';
@@ -31,7 +30,6 @@ class RequestEmailDto extends OmitType(LoginUserDto, ['password'] as const) {}
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly userService: UserService,
     private readonly twilioService: TwilioService,
   ) {}
 
@@ -44,16 +42,8 @@ export class AuthController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const user = await this.userService._validateCredentials(body);
-
-    await this.userService.verifyUser(body.email);
-
-    if (user.verifiedAt === null) {
-      throw new UnauthorizedException('You need to verify your email first.');
-    }
-
-    const tokens = await this.authService.createSession(
-      user,
+    const tokens = await this.authService.signIn(
+      body,
       req.headers['user-agent'] || 'unknown',
       req.ip,
     );
@@ -66,7 +56,7 @@ export class AuthController {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.json({
+    return res.json({
       accessToken: tokens.accessToken,
       expiresIn: tokens.expiresIn,
     });
@@ -117,7 +107,7 @@ export class AuthController {
   @Public()
   @ApiOperation({ summary: 'Forgot password' })
   async forgotPassword(@Body('email') email: string) {
-    return await this.authService.forgotPassword(email);
+    return await this.authService.sendPasswordResetEmail(email);
   }
 
   @Post('send-verify-email')
@@ -136,15 +126,21 @@ export class AuthController {
       throw new MissingRequiredPropertiesException('Email is missing');
     }
 
-    return await this.userService.verifyUser(email);
+    return await this.authService.verifyEmail(email);
   }
 
   @Post('reset-password')
   @Public()
-  @ApiBody({ type: ChangePasswordDto })
+  @ApiBody({ type: ResetPasswordDto })
   @ApiOperation({ summary: 'Reset password' })
-  async resetPassword(@Body() resetPasswordDto: ChangePasswordDto) {
-    const result = await this.authService.resetPassword(resetPasswordDto);
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    const { token, newPassword } = resetPasswordDto;
+
+    if (!token || !newPassword) {
+      throw new MissingRequiredPropertiesException();
+    }
+
+    const result = await this.authService.resetPassword(token, newPassword);
 
     if (!result) {
       throw new BadRequestException('Password reset failed');

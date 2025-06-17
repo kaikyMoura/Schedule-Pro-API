@@ -1,61 +1,21 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { hash } from 'bcryptjs';
-import { randomUUID } from 'crypto';
-import { JwtPayload } from 'jsonwebtoken';
-import { User } from 'prisma/app/generated/prisma/client';
-import { ChangePasswordDto } from 'src/user/dtos/change-password-user.schema';
 import { InvalidCredentialsException } from 'src/common/exceptions/invalid-credentials.exception';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
 import { UserNotFoundException } from 'src/common/exceptions/user-not-found.exception';
 import { MailService } from 'src/mail/mail.service';
 import { UserSessionRepository } from 'src/user-session/user-session.repository';
-import { BaseUserDto } from 'src/user/dtos/base-user.dto';
-import { UserRepository } from 'src/user/user.repository';
+import { LoginUserDto } from 'src/user/dtos/login-user.dto';
+import { UserService } from 'src/user/user.service';
+import { TokenService } from './token.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly jwtService: JwtService,
-    private readonly userSessionRepository: UserSessionRepository,
-    private readonly userRepository: UserRepository,
     private readonly emailService: MailService,
+    private readonly userService: UserService,
+    private readonly userSessionRepository: UserSessionRepository,
+    private readonly tokenService: TokenService,
   ) {}
-
-  /**
-   * Generates a JWT access token for the given payload.
-   *
-   * @param {T} payload - The payload containing user information (id, name, email).
-   *
-   * @returns {{ token: string; expiresIn: string }} - An object containing the generated JWT token and its expiry time in minutes.
-   *
-   * @template T - A generic type that extends an object with id, name, and email properties.
-   */
-  generateAccessToken<T extends { id: string; name: string; email: string }>(
-    payload: T,
-    expiresIn?: string,
-  ): { token: string; expiresIn: string } {
-    const token = this.jwtService.sign(
-      { id: payload.id, name: payload.name, email: payload.email },
-      { secret: process.env.JWT_SECRET_KEY, expiresIn: expiresIn ?? '15m' },
-    );
-
-    return { token, expiresIn: expiresIn ?? '15m' };
-  }
-
-  /**
-   * Generates a new refresh token and its expiry date.
-   *
-   * @returns {{ token: string; expiresIn: Date }} - An object containing the generated refresh token
-   * and its expiry date, which is set to 7 days from the current date.
-   */
-  generateRefreshToken(): { token: string; expiresIn: Date } {
-    const token = randomUUID();
-
-    const expiresIn = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-    return { token, expiresIn };
-  }
 
   /**
    * Creates a new user session by generating a refresh token and access token.
@@ -67,12 +27,15 @@ export class AuthService {
    * @returns {Object} - An object containing the generated access token, refresh token,
    * and the expiry time of the access token.
    */
-  async createSession(
-    user: Omit<BaseUserDto, 'password'>,
+  async signIn(
+    body: LoginUserDto,
     userAgent: string,
     ip?: string,
   ): Promise<{ accessToken: string; refreshToken: string; expiresIn: string }> {
-    const { token: refreshToken, expiresIn } = this.generateRefreshToken();
+    const { token: refreshToken, expiresIn } =
+      this.tokenService.generateRefreshToken();
+
+    const user = await this.userService._validateCredentials(body);
 
     await this.userSessionRepository.create({
       userId: user.id!,
@@ -82,10 +45,10 @@ export class AuthService {
       expiresAt: expiresIn,
     });
 
-    const access = this.generateAccessToken({
-      id: user.id!,
-      name: user.name,
+    const access = await this.tokenService.generateAccessToken({
+      sub: user.id!,
       email: user.email,
+      role: user.role,
     });
 
     return {
@@ -116,12 +79,17 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    const user = await this.userRepository.findUnique(session.userId);
+    const user = await this.userService.retrieveById(session.userId);
     if (!user) throw new UserNotFoundException();
 
-    const newAccess = this.generateAccessToken(user);
+    const newAccess = await this.tokenService.generateAccessToken({
+      sub: user.id!,
+      email: user.email,
+      role: user.role,
+    });
 
-    const { token: newRefreshToken, expiresIn } = this.generateRefreshToken();
+    const { token: newRefreshToken, expiresIn } =
+      this.tokenService.generateRefreshToken();
 
     await this.userSessionRepository.updateRefreshToken(
       session.id,
@@ -148,42 +116,6 @@ export class AuthService {
   }
 
   /**
-   * Verifies a given JWT token and returns the payload if successful.
-   * The payload is expected to be an object that extends the object type.
-   * If the verification fails, an UnauthorizedException is thrown.
-   *
-   * @param token - The token to be verified.
-   *
-   * @returns {Promise<T>} - A promise that resolves to the payload of the token.
-   *
-   * @throws {UnauthorizedException} - Thrown if the token is invalid or expired.
-   */
-  async verifyToken<T extends object>(token: string): Promise<T> {
-    try {
-      return await this.jwtService.verifyAsync<T>(token, {
-        secret: process.env.JWT_SECRET_KEY,
-      });
-    } catch {
-      throw new UnauthorizedException('Invalid or expired token');
-    }
-  }
-
-  /**
-   * Decodes a JWT token and returns the payload if successful, or null if the decoding fails.
-   *
-   * @param token - The token to be decoded.
-   *
-   * @returns {JwtPayload | null} - The payload of the token, or null if decoding fails.
-   */
-  decodeToken(token: string): JwtPayload | null {
-    try {
-      return this.jwtService.decode(token);
-    } catch {
-      return null;
-    }
-  }
-
-  /**
    * Sends a password reset email to the given email address if a User with that address exists.
    *
    * @param {string} email - The email address of the User to send the password reset email to.
@@ -194,13 +126,12 @@ export class AuthService {
    * @throws {UserNotFoundException} - Thrown if the User with the given email address does not exist in the database.
    * @throws {InvalidCredentialsException} - Thrown if the given email address is invalid.
    */
-  async forgotPassword(email: string): Promise<string> {
+  async sendPasswordResetEmail(email: string): Promise<string> {
     if (!email) {
       throw new MissingRequiredPropertiesException();
     }
 
-    const retrievedCustomer =
-      await this.userRepository.findUniqueByEmail(email);
+    const retrievedCustomer = await this.userService.retrieveByEmail(email);
 
     if (!retrievedCustomer) {
       throw new UserNotFoundException('User not found');
@@ -213,11 +144,11 @@ export class AuthService {
       throw new InvalidCredentialsException();
     }
 
-    const { token } = this.generateAccessToken(
+    const { token } = await this.tokenService.generateAccessToken(
       {
-        id: retrievedCustomer.id,
-        name: retrievedCustomer.name,
+        sub: retrievedCustomer.id!,
         email: retrievedCustomer.email,
+        role: retrievedCustomer.role,
       },
       '1h',
     );
@@ -244,37 +175,19 @@ export class AuthService {
   }
 
   /**
-   * Resets the password of a User in the database.
+   * Resets the password for a User using the provided token and new password.
    *
-   * @param {string} token - The token to verify the User.
-   * @param {ChangePasswordDto} resetPasswordDto - Data transfer object containing the new password of the User.
+   * @param {string} token - The token used to verify the User's identity.
+   * @param {string} newPassword - The new password to set for the User.
    *
-   * @returns {Promise<string>} - A promise that resolves to a string 'Password reset successfully' if the operation is successful.
+   * @returns {Promise<string>} - A promise that resolves to a string indicating
+   * the success of the password reset operation.
    *
    * @throws {MissingRequiredPropertiesException} - Thrown if the token or new password is missing or undefined.
-   * @throws {UserNotFoundException} - Thrown if the User with the given token does not exist in the database.
+   * @throws {UserNotFoundException} - Thrown if the User associated with the token does not exist in the database.
    */
-  async resetPassword(resetPasswordDto: ChangePasswordDto): Promise<string> {
-    const { token, newPassword } = resetPasswordDto;
-
-    if (!token || newPassword) {
-      throw new MissingRequiredPropertiesException();
-    }
-
-    const retrievedUser = await this.verifyToken<User>(token);
-
-    if (!retrievedUser) {
-      throw new UserNotFoundException('User not found');
-    }
-
-    const hashedNewPassword = await hash(newPassword, 10);
-
-    await this.userRepository.updatePassword(
-      retrievedUser.id,
-      hashedNewPassword,
-    );
-
-    return 'Password reset successfully';
+  async resetPassword(token: string, newPassword: string): Promise<string> {
+    return await this.userService.resetPassword(token, newPassword);
   }
 
   /**
@@ -293,8 +206,7 @@ export class AuthService {
       throw new MissingRequiredPropertiesException();
     }
 
-    const retrievedCustomer =
-      await this.userRepository.findUniqueByEmail(email);
+    const retrievedCustomer = await this.userService.retrieveByEmail(email);
 
     if (!retrievedCustomer) {
       throw new UserNotFoundException('User not found');
@@ -307,11 +219,11 @@ export class AuthService {
       throw new InvalidCredentialsException();
     }
 
-    const { token } = this.generateAccessToken(
+    const { token } = await this.tokenService.generateAccessToken(
       {
-        id: retrievedCustomer.id,
-        name: retrievedCustomer.name,
+        sub: retrievedCustomer.id!,
         email: retrievedCustomer.email,
+        role: retrievedCustomer.role,
       },
       '1h',
     );
@@ -335,5 +247,19 @@ export class AuthService {
     });
 
     return 'Verification email sent successfully';
+  }
+
+  /**
+   * Verifies a User by its email in the database.
+   *
+   * @param {string} email - The email of the User to verify.
+   *
+   * @returns {Promise<string>} - A promise that resolves to a string 'User verified successfully' if the operation is successful.
+   *
+   * @throws {MissingRequiredPropertiesException} - Thrown if the email is missing or undefined.
+   * @throws {UserNotFoundException} - Thrown if the User with the given email does not exist in the database.
+   */
+  async verifyEmail(email: string): Promise<string> {
+    return await this.userService.verifyUser(email);
   }
 }

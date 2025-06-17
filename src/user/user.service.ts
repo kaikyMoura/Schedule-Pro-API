@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import bcrypt, { compare, hash } from 'bcryptjs';
 import { Role } from 'prisma/app/generated/prisma/client';
-import { AuthService } from 'src/auth/auth.service';
 import { InvalidCredentialsException } from 'src/common/exceptions/invalid-credentials.exception';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
 import { UserAlreadyRegisteredException } from 'src/common/exceptions/user-already-registered.exception';
@@ -16,16 +15,13 @@ import { ResponseModel } from 'src/common/models/response.model';
 import { ChangePasswordDto } from 'src/user/dtos/change-password-user.schema';
 import { BaseUserDto } from './dtos/base-user.dto';
 import { CreateUserDto } from './dtos/create-user.dto';
+import { LoginUserDto } from './dtos/login-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { UserRepository } from './user.repository';
-import { LoginUserDto } from './dtos/login-user.dto';
 
 @Injectable()
 export class UserService {
-  constructor(
-    private readonly userRepository: UserRepository,
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly userRepository: UserRepository) {}
   private saltRounds = 10;
 
   /**
@@ -182,47 +178,6 @@ export class UserService {
   }
 
   /**
-   * Validates the given User credentials.
-   *
-   * @param {LoginUserDto} user - The User data to validate.
-   *
-   * @returns {Promise<Omit<BaseUserDto, 'password'>>} - A promise that resolves to the User data without the password if the
-   * credentials are valid, or throws an error if they are not.
-   *
-   * @throws {UserNotFoundException} - Thrown if no User with the given email is found in the database.
-   * @throws {InvalidCredentialsException} - Thrown if the email is invalid.
-   * @throws {UnauthorizedException} - Thrown if the given password does not match the User's password in the database.
-   */
-  async _validateCredentials(
-    user: LoginUserDto,
-  ): Promise<Omit<BaseUserDto, 'password'>> {
-    const { email, password } = user;
-
-    const retrivedUser = await this.userRepository.findUniqueByEmail(email);
-
-    if (!retrivedUser) {
-      throw new UserNotFoundException('User not found');
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      throw new InvalidCredentialsException();
-    }
-
-    if (!(await bcrypt.compare(password, retrivedUser.password))) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    return {
-      id: retrivedUser.id,
-      name: retrivedUser.name,
-      email: retrivedUser.email,
-      phone: retrivedUser.phone,
-      photo: retrivedUser.photo!,
-      role: retrivedUser.role,
-    };
-  }
-
-  /**
    * Creates a new User in the database.
    *
    * @param {CreateUserDto} user - The User data to create.
@@ -245,7 +200,9 @@ export class UserService {
    */
   async create(
     user: CreateUserDto,
-  ): Promise<ResponseModel<Omit<BaseUserDto, 'id' | 'password'>, Error>> {
+  ): Promise<
+    ResponseModel<Omit<BaseUserDto, 'id' | 'password' | 'role'>, Error>
+  > {
     if (!user.name || !user.email) {
       throw new MissingRequiredPropertiesException();
     }
@@ -268,7 +225,6 @@ export class UserService {
       password: await hash(user.password, this.saltRounds),
       phone: user.phone,
       photo: user.photo,
-      role: user.role,
     });
 
     return {
@@ -278,7 +234,6 @@ export class UserService {
         email: user.email,
         phone: user.phone,
         photo: user.photo ? user.photo : '',
-        role: user.role,
       },
     };
   }
@@ -321,41 +276,73 @@ export class UserService {
   /**
    * Changes the password of a User in the database.
    *
-   * @param {string} id - The unique identifier of the User whose password is to be changed.
-   * @param {ChangePasswordDto} changePasswordDto - Data transfer object containing the current and new passwords of the User.
+   * @param {string} userId - The id of the User whose password is to be changed.
+   * @param {ChangePasswordDto} changePasswordDto - Data transfer object containing the current and new passwords.
    *
-   * @returns {Promise<void>} - A promise that resolves when the User's password has been successfully updated.
+   * @returns {Promise<void>} - A promise that resolves when the password has been successfully changed.
    *
-   * @throws {MissingRequiredPropertiesException} - Thrown if the id is missing or undefined.
+   * @throws {MissingRequiredPropertiesException} - Thrown if the userId is missing or undefined.
    * @throws {UserNotFoundException} - Thrown if the User with the given id does not exist in the database.
-   * @throws {InvalidCredentialsException} - Thrown if the provided current password does not match the stored password.
+   * @throws {InvalidCredentialsException} - Thrown if the current password does not match the User's password in the database.
    */
   async changePassword(
-    id: string,
-    changePasswordDto: ChangePasswordDto,
+    userId: string,
+    { currentPassword, newPassword }: ChangePasswordDto,
   ): Promise<void> {
-    if (!id) {
-      throw new MissingRequiredPropertiesException();
+    if (!userId) {
+      throw new MissingRequiredPropertiesException('User ID is required');
     }
 
-    const retrievedCustomer = await this.userRepository.findUnique(id);
+    const user = await this.userRepository.findUnique(userId);
 
-    if (!retrievedCustomer) {
+    if (!user) {
       throw new UserNotFoundException('User not found');
     }
 
-    if (
-      !(await compare(
-        changePasswordDto.currentPassword,
-        retrievedCustomer.password,
-      ))
-    ) {
+    const isCurrentPasswordValid = await compare(
+      currentPassword,
+      user.password,
+    );
+
+    if (!isCurrentPasswordValid) {
       throw new InvalidCredentialsException();
     }
 
-    const hashedNewPassword = await hash(changePasswordDto.newPassword, 10);
+    const hashedPassword = await hash(newPassword, 10);
 
-    await this.userRepository.updatePassword(id, hashedNewPassword);
+    await this.userRepository.updatePassword(userId, hashedPassword);
+  }
+
+  /**
+   * Resets the password of a User in the database.
+   *
+   * @param {string} token - The token to verify the User.
+   * @param {ChangePasswordDto} resetPasswordDto - Data transfer object containing the new password of the User.
+   *
+   * @returns {Promise<string>} - A promise that resolves to a string 'Password reset successfully' if the operation is successful.
+   *
+   * @throws {MissingRequiredPropertiesException} - Thrown if the token or new password is missing or undefined.
+   * @throws {UserNotFoundException} - Thrown if the User with the given token does not exist in the database.
+   */
+  async resetPassword(userId: string, newPassword: string): Promise<string> {
+    if (!userId || !newPassword) {
+      throw new MissingRequiredPropertiesException();
+    }
+
+    const retrievedUser = await this.userRepository.findUnique(userId);
+
+    if (!retrievedUser) {
+      throw new UserNotFoundException('User not found');
+    }
+
+    const hashedNewPassword = await hash(newPassword, 10);
+
+    await this.userRepository.updatePassword(
+      retrievedUser.id,
+      hashedNewPassword,
+    );
+
+    return 'Password reset successfully';
   }
 
   /**
@@ -390,5 +377,42 @@ export class UserService {
     }
 
     return 'User verified successfully';
+  }
+
+  /**
+   * Validates the given User credentials.
+   *
+   * @param {LoginUserDto} user - The User data to validate.
+   *
+   * @returns {Promise<Omit<BaseUserDto, 'password'>>} - A promise that resolves to the User data without the password if the
+   * credentials are valid, or throws an error if they are not.
+   *
+   * @throws {UserNotFoundException} - Thrown if no User with the given email is found in the database.
+   * @throws {InvalidCredentialsException} - Thrown if the email is invalid.
+   * @throws {UnauthorizedException} - Thrown if the given password does not match the User's password in the database.
+   */
+  async _validateCredentials(
+    user: LoginUserDto,
+  ): Promise<Omit<BaseUserDto, 'password'>> {
+    const { email, password } = user;
+
+    const retrivedUser = await this.userRepository.findUniqueByEmail(email);
+
+    if (!retrivedUser) {
+      throw new UserNotFoundException('User not found');
+    }
+
+    if (!(await bcrypt.compare(password, retrivedUser.password))) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    return {
+      id: retrivedUser.id,
+      name: retrivedUser.name,
+      email: retrivedUser.email,
+      phone: retrivedUser.phone,
+      photo: retrivedUser.photo!,
+      role: retrivedUser.role,
+    };
   }
 }

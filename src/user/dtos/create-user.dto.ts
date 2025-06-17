@@ -8,6 +8,8 @@ import { CreateServiceItemDto } from 'src/serviceItem/dtos/create-service-item.d
 export class CreateUserDto extends OmitType(BaseUserDto, [
   'id',
   'appointments',
+  'role',
+  'verifiedAt',
   'services',
   'staffAppointments',
 ] as const) {
