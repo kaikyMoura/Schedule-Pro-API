@@ -7,6 +7,9 @@ import { UserSessionRepository } from 'src/user-session/user-session.repository'
 import { LoginUserDto } from 'src/user/dtos/login-user.dto';
 import { UserService } from 'src/user/user.service';
 import { TokenService } from './token.service';
+import { CreateUserDto } from 'src/user/dtos/create-user.dto';
+import { ApiResponse } from 'src/common/types/api-resonse';
+import { BaseUserDto } from 'src/user/dtos/base-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -56,6 +59,22 @@ export class AuthService {
       refreshToken,
       expiresIn: access.expiresIn,
     };
+  }
+
+  /**
+   * Creates a new user.
+   *
+   * @param {CreateUserDto} body - The user data to create, which may include optional availability.
+   *
+   * @returns {Promise<BaseUserDto>} - A promise that resolves to the newly created User's base data.
+   *
+   * @throws {BadRequestException} - Thrown if the User data is missing required fields.
+   * @throws {ConflictException} - Thrown if the email or phone is already registered.
+   */
+  async signup(
+    body: CreateUserDto,
+  ): Promise<ApiResponse<Omit<BaseUserDto, 'id' | 'password' | 'role'>>> {
+    return this.userService.create(body);
   }
 
   /**

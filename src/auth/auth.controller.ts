@@ -22,6 +22,7 @@ import { ResetPasswordDto } from 'src/user/dtos/reset-password.dto';
 import { AuthService } from './auth.service';
 import { BaseOtpDto } from './dtos/base-otp.dto';
 import { TwilioService } from './utils/twilio.service';
+import { CreateUserDto } from 'src/user/dtos/create-user.dto';
 
 class RequestEmailDto extends OmitType(LoginUserDto, ['password'] as const) {}
 
@@ -60,6 +61,18 @@ export class AuthController {
       accessToken: tokens.accessToken,
       expiresIn: tokens.expiresIn,
     });
+  }
+
+  @Post('signup')
+  @ApiBody({ type: CreateUserDto })
+  @Public()
+  @ApiOperation({ summary: 'Create a new user' })
+  async create(@Body() userDto: CreateUserDto) {
+    const data = await this.authService.signup(userDto);
+    const user = data.data;
+    await this.authService.sendVerificationEmail(user.email);
+
+    return data;
   }
 
   @Post('refresh')
@@ -162,6 +175,6 @@ export class AuthController {
   @ApiBody({ type: BaseOtpDto })
   @Post('verify-otp')
   async verifyOtp(@Body('phone') phone: string, @Body('otp') otp: string) {
-    return await this.twilioService.createVerificationCheck(phone, otp);
+    return await this.twilioService.verificationCheck(phone, otp);
   }
 }

@@ -6,13 +6,13 @@ import {
 import { Role } from 'prisma/app/generated/prisma/client';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
 import { UserNotFoundException } from 'src/common/exceptions/user-not-found.exception';
-import { ResponseModel } from 'src/common/models/response.model';
 import { ServiceItemService } from 'src/serviceItem/service-item.service';
 import { UserService } from 'src/user/user.service';
 import { BaseStaffServiceDto } from './dtos/base-staff-service.dto';
 import { CreateStaffServiceDto } from './dtos/create-staff-service.dto';
 import { UpdateStaffServiceDto } from './dtos/update-staff-service.dto';
 import { StaffServiceRepository } from './staff-service.repository';
+import { ApiResponse } from 'src/common/types/api-resonse';
 
 @Injectable()
 export class StaffServiceService {
@@ -137,9 +137,7 @@ export class StaffServiceService {
    */
   async create(
     staffService: CreateStaffServiceDto,
-  ): Promise<
-    ResponseModel<Omit<BaseStaffServiceDto, 'id' | 'createdAt'>, Error>
-  > {
+  ): Promise<ApiResponse<Omit<BaseStaffServiceDto, 'id' | 'createdAt'>>> {
     if (!staffService.staffId || !staffService.serviceId) {
       throw new MissingRequiredPropertiesException();
     }

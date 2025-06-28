@@ -6,18 +6,18 @@ export class BaseStaffAvailabilityDto {
   @IsUUID()
   id: string;
 
-  @IsUUID()
+  @IsUUID(undefined, { message: 'staffId must be a valid UUID' })
   staffId: string;
 
   @ApiProperty({ example: 1 })
-  @IsInt()
+  @IsInt({ message: 'dayOfWeek must be a number' })
   dayOfWeek: number;
 
   @ApiProperty({ example: '10:00' })
-  @IsString()
+  @IsString({ message: 'startTime must be a string' })
   startTime: string;
 
   @ApiProperty({ example: '11:00' })
-  @IsString()
+  @IsString({ message: 'endTime must be a string' })
   endTime: string;
 }

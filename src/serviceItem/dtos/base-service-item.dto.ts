@@ -21,11 +21,11 @@ export class BaseServiceItemDto {
   type: string;
 
   @ApiProperty({ example: '100.0' })
-  @IsNumber()
+  @IsNumber(undefined, { message: 'price must be a number' })
   price: number;
 
   @ApiProperty({ example: '30' })
-  @IsNumber()
+  @IsNumber(undefined, { message: 'duration must be a number' })
   duration: number;
 
   @ValidateNested({ each: true })

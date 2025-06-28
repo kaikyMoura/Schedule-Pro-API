@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
-import { ResponseModel } from 'src/common/models/response.model';
 import { UserService } from 'src/user/user.service';
 import { BaseServiceItemDto } from './dtos/base-service-item.dto';
 import { CreateServiceItemDto } from './dtos/create-service-item.dto';
 import { UpdateServiceItemDto } from './dtos/update-service-item.dto';
 import { ServiceItemRepository } from './service-item.repository';
+import { ApiResponse } from 'src/common/types/api-resonse';
 
 @Injectable()
 export class ServiceItemService {
@@ -91,7 +91,7 @@ export class ServiceItemService {
    */
   async create(
     serviceItem: CreateServiceItemDto,
-  ): Promise<ResponseModel<BaseServiceItemDto, Error>> {
+  ): Promise<ApiResponse<BaseServiceItemDto>> {
     if (!serviceItem.type || !serviceItem.price || !serviceItem.duration) {
       throw new MissingRequiredPropertiesException();
     }

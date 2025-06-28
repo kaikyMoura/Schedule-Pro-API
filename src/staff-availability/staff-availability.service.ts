@@ -7,12 +7,12 @@ import {
 import { Role } from 'prisma/app/generated/prisma/client';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
 import { UserNotFoundException } from 'src/common/exceptions/user-not-found.exception';
-import { ResponseModel } from 'src/common/models/response.model';
 import { UserService } from 'src/user/user.service';
 import { BaseStaffAvailabilityDto } from './dtos/base-staff-availability.dto';
 import { CreateStaffAvailabilityDto } from './dtos/create-staff-availability.dto';
 import { UpdateStaffAvailabilityDto } from './dtos/update-staff-availability.dto';
 import { StaffAvailabilityRepository } from './staff-availability.repository';
+import { ApiResponse } from 'src/common/types/api-resonse';
 
 @Injectable()
 export class StaffAvailabilityService {
@@ -100,15 +100,12 @@ export class StaffAvailabilityService {
    * time.
    */
   async create(staffAvailability: CreateStaffAvailabilityDto): Promise<
-    ResponseModel<
-      {
-        dayOfWeek: number;
-        startTime: string;
-        endTime: string;
-        staffAssociated: string;
-      },
-      Error
-    >
+    ApiResponse<{
+      dayOfWeek: number;
+      startTime: string;
+      endTime: string;
+      staffAssociated: string;
+    }>
   > {
     if (
       !staffAvailability.dayOfWeek ||

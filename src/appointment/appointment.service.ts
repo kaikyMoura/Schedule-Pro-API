@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { Role, Status } from 'prisma/app/generated/prisma/client';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
-import { ResponseModel } from 'src/common/models/response.model';
+import { ApiResponse } from 'src/common/types/api-resonse';
 import { MailService } from 'src/mail/mail.service';
 import { ServiceItemService } from 'src/serviceItem/service-item.service';
 import { BaseUserDto } from 'src/user/dtos/base-user.dto';
@@ -28,7 +28,7 @@ export class AppointmentService {
   /**
    * Retrieves all Appointment objects from the database.
    *
-   * @returns {Promise<ResponseModel<BaseAppointmentDto[], Error>>} - A promise that resolves to a ResponseModel
+   * @returns {Promise<ApiResponse<BaseAppointmentDto[], Error>>} - A promise that resolves to an ApiResponse
    * containing an array of BaseAppointmentDto objects with appointment details, or an error if the operation fails.
    *
    * @example
@@ -139,7 +139,7 @@ export class AppointmentService {
    */
   async retrieveById(
     appointmentId: string,
-  ): Promise<ResponseModel<BaseAppointmentDto, Error>> {
+  ): Promise<ApiResponse<BaseAppointmentDto>> {
     if (!appointmentId) {
       throw new MissingRequiredPropertiesException();
     }
@@ -152,6 +152,7 @@ export class AppointmentService {
     }
 
     return {
+      message: 'Appointment retrieved successfully',
       data: {
         id: retrivedAppointment.id,
         date: retrivedAppointment.date,
@@ -191,7 +192,7 @@ export class AppointmentService {
    */
   async create(
     appointment: CreateAppointmentDto,
-  ): Promise<ResponseModel<AppointmentResponseDto, Error>> {
+  ): Promise<ApiResponse<AppointmentResponseDto>> {
     if (
       !appointment.customerId ||
       !appointment.serviceId ||

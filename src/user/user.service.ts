@@ -9,15 +9,14 @@ import bcrypt, { compare, hash } from 'bcryptjs';
 import { Role } from 'prisma/app/generated/prisma/client';
 import { InvalidCredentialsException } from 'src/common/exceptions/invalid-credentials.exception';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
-import { UserAlreadyRegisteredException } from 'src/common/exceptions/user-already-registered.exception';
 import { UserNotFoundException } from 'src/common/exceptions/user-not-found.exception';
-import { ResponseModel } from 'src/common/models/response.model';
 import { ChangePasswordDto } from 'src/user/dtos/change-password-user.schema';
 import { BaseUserDto } from './dtos/base-user.dto';
 import { CreateUserDto } from './dtos/create-user.dto';
 import { LoginUserDto } from './dtos/login-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { UserRepository } from './user.repository';
+import { ApiResponse } from 'src/common/types/api-resonse';
 
 @Injectable()
 export class UserService {
@@ -180,39 +179,31 @@ export class UserService {
   /**
    * Creates a new User in the database.
    *
-   * @param {CreateUserDto} user - The User data to create.
+   * @param {CreateUserDto} user - The User data to create, which may include optional availability.
    *
-   * @returns {Promise<ResponseModel<Omit<BaseUserDto, 'id' | 'password'>, Error>>} - A promise that resolves to a ResponseModel
-   * with the User data without the password, or an error if the operation fails.
+   * @returns {Promise<ApiResponse<Omit<BaseUserDto, 'id' | 'password' | 'role'>>>>} - A promise that resolves to an ApiResponse object containing the newly created User's base data.
+   *
+   * @throws {BadRequestException} - Thrown if the User data is missing required fields.
+   * @throws {ConflictException} - Thrown if the email or phone is already registered.
    *
    * @example
    * const user = await userService.create({
    *   name: 'John Doe',
-   *   email: 'john.doe@example.com',
-   *   password: 'securePassword123',
-   *   phone: '1234567890',
-   *   photo: 'profile-picture.jpg',
-   * })
-   *
-   * @throws {MissingRequiredPropertiesException} - Thrown if the User data is missing or undefined.
-   * @throws {InvalidCredentialsException} - Thrown if the User email is invalid.
-   * @throws {UserAlreadyRegisteredException} - Thrown if the User with the given email or phone already exists in the database.
+   *   email: 'john@example.com',
+   *   password: 'mySecretPassword',
+   *   phone: '123-456-7890',
+   *   photo: 'https://example.com/john.jpg',
+   * });
    */
   async create(
     user: CreateUserDto,
-  ): Promise<
-    ResponseModel<Omit<BaseUserDto, 'id' | 'password' | 'role'>, Error>
-  > {
+  ): Promise<ApiResponse<Omit<BaseUserDto, 'id' | 'password' | 'role'>>> {
     if (!user.name || !user.email) {
-      throw new MissingRequiredPropertiesException();
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)) {
-      throw new InvalidCredentialsException();
+      throw new BadRequestException('Name and email are required');
     }
 
     if (await this.userRepository.findUniqueByEmail(user.email)) {
-      throw new UserAlreadyRegisteredException();
+      throw new ConflictException('Email already registered! Try logging in.');
     }
 
     if (await this.userRepository.findUniqueByPhone(user.phone)) {

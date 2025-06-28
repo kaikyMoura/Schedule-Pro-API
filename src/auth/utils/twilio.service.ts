@@ -6,10 +6,23 @@ export class TwilioService {
     private readonly twilioClient: Twilio,
     private readonly verifySid: string,
   ) {
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+      throw new BadRequestException(
+        'Twilio Account SID and Auth Token are not configured',
+      );
+    }
+
+    if (!process.env.TWILIO_VERIFY_SERVICE_SID) {
+      throw new BadRequestException(
+        'Twilio Verify Service SID is not configured',
+      );
+    }
+
     this.twilioClient = new Twilio(
       process.env.TWILIO_ACCOUNT_SID,
       process.env.TWILIO_AUTH_TOKEN,
     );
+
     this.verifySid = process.env.TWILIO_VERIFY_SERVICE_SID!;
   }
   /**
@@ -48,17 +61,24 @@ export class TwilioService {
    *
    * @throws {BadRequestException} - Thrown if either the phone number or OTP is not provided.
    */
-  async createVerificationCheck(
+  async verificationCheck(
     to: string,
     code: string,
   ): Promise<{ success: boolean; message: string }> {
+    console.log('Verifying OTP for:', to, 'with code:', code);
     if (!to || !code) {
       throw new BadRequestException('Missing required parameters');
     }
 
+    if (!this.verifySid) {
+      throw new BadRequestException(
+        'Twilio Verify Service SID is not configured',
+      );
+    }
+
     const verificationCheck = await this.twilioClient.verify.v2
       .services(this.verifySid)
-      .verificationChecks.create({ to: to, code });
+      .verificationChecks.create({ to, code });
 
     if (verificationCheck.status === 'approved') {
       return { success: true, message: 'The code is valid' };

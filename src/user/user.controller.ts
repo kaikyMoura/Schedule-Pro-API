@@ -5,19 +5,16 @@ import {
   Param,
   ParseUUIDPipe,
   Patch,
-  Post,
   Put,
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Public } from 'src/common/decorators/public.decorator';
-import { ChangePasswordDto } from 'src/user/dtos/change-password-user.schema';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CustomRequest } from 'src/common/types/custom-request';
-import { CreateUserDto } from './dtos/create-user.dto';
+import { ChangePasswordDto } from 'src/user/dtos/change-password-user.schema';
+import { Roles } from './decorators/role.decorator';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { UserService } from './user.service';
-import { Roles } from './decorators/role.decorator';
 
 @ApiTags('User')
 @Controller('users')
@@ -78,14 +75,6 @@ export class UserController {
   })
   findMe(@Req() req: CustomRequest) {
     return this.userService.retrieveById(req.user.id);
-  }
-
-  @Post()
-  @ApiBody({ type: CreateUserDto })
-  @Public()
-  @ApiOperation({ summary: 'Create a new user' })
-  async create(@Body() userDto: CreateUserDto) {
-    return await this.userService.create(userDto);
   }
 
   @Put(':id')
