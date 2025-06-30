@@ -27,10 +27,17 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe());
 
+  const allowedOrigins =
+    config.get('NODE_ENV') === 'production'
+      ? ['https://schedule-pro-five.vercel.app']
+      : config.get('NODE_ENV') === 'development'
+        ? ['http://localhost:3000']
+        : [];
+
   app.enableCors({
     allowedHeaders: ['Content-Type', 'Authorization'],
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
-    origin: config.get('NODE_ENV') === 'production' ? false : '*',
+    origin: allowedOrigins,
     preflightContinue: false,
     optionsSuccessStatus: 204,
     credentials: true,

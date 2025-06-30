@@ -1,11 +1,12 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, Logger } from '@nestjs/common';
 import { Twilio } from 'twilio';
 
 export class TwilioService {
-  constructor(
-    private readonly twilioClient: Twilio,
-    private readonly verifySid: string,
-  ) {
+  private readonly twilioClient: Twilio;
+  private readonly verifySid: string;
+  private readonly logger = new Logger(TwilioService.name);
+
+  constructor() {
     if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
       throw new BadRequestException(
         'Twilio Account SID and Auth Token are not configured',
@@ -37,6 +38,7 @@ export class TwilioService {
   async createVerification(
     to: string,
   ): Promise<{ status: string; message: string }> {
+    console.log('Enviando OTP para:', to, 'SID:', this.verifySid);
     if (!to) {
       throw new BadRequestException('Phone number is required');
     }
@@ -65,12 +67,21 @@ export class TwilioService {
     to: string,
     code: string,
   ): Promise<{ success: boolean; message: string }> {
-    console.log('Verifying OTP for:', to, 'with code:', code);
+    this.logger.log(
+      'Verifyng OTP for:',
+      to,
+      'SID:',
+      this.verifySid,
+      'code:',
+      code,
+    );
     if (!to || !code) {
+      this.logger.warn('Missing required parameters');
       throw new BadRequestException('Missing required parameters');
     }
 
     if (!this.verifySid) {
+      this.logger.warn('Twilio Verify Service SID is not configured');
       throw new BadRequestException(
         'Twilio Verify Service SID is not configured',
       );
@@ -78,7 +89,7 @@ export class TwilioService {
 
     const verificationCheck = await this.twilioClient.verify.v2
       .services(this.verifySid)
-      .verificationChecks.create({ to, code });
+      .verificationChecks.create({ code, to });
 
     if (verificationCheck.status === 'approved') {
       return { success: true, message: 'The code is valid' };

@@ -68,6 +68,7 @@ export class AuthController {
   @Public()
   @ApiOperation({ summary: 'Create a new user' })
   async create(@Body() userDto: CreateUserDto) {
+    console.log('Creating user:', userDto);
     const data = await this.authService.signup(userDto);
     const user = data.data;
     await this.authService.sendVerificationEmail(user.email);
@@ -174,7 +175,10 @@ export class AuthController {
   @Public()
   @ApiBody({ type: BaseOtpDto })
   @Post('verify-otp')
-  async verifyOtp(@Body('phone') phone: string, @Body('otp') otp: string) {
-    return await this.twilioService.verificationCheck(phone, otp);
+  async verifyOtp(@Body() baseOtpDto: BaseOtpDto) {
+    return await this.twilioService.verificationCheck(
+      baseOtpDto.phone,
+      baseOtpDto.code,
+    );
   }
 }
