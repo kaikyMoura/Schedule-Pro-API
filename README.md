@@ -3,7 +3,7 @@
 # 🗓️ Schedule Pro API
 
 
-**Schedule-Pro-API** is the backend service for the Schedule Pro platform. It provides robust authentication, session management, role-based access control (RBAC), email notifications via SendGrid, and OTP-based verification using Twilio. This API ensures secure user management and communication flows for the application.
+**Schedule-Pro-API** is the backend service for the [Schedule Pro](https://github.com/kaikyMoura/Schedule-Pro) platform. It provides robust authentication, session management, role-based access control (RBAC), email notifications via SendGrid, and OTP-based verification using Twilio. This API ensures secure user management and communication flows for the application.
 
 </div>
 
