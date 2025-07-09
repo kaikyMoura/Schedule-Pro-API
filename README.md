@@ -47,11 +47,6 @@ The API includes robust authentication with JWT, role-based access control (RBAC
   <img alt="nodejs-logo" width="48" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nodejs/nodejs-original-wordmark.svg" />
   <img alt="graphql-logo" width="48" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/graphql/graphql-plain-wordmark.svg" />
   <img alt="postgresql-logo" width="48" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/postgresql/postgresql-original-wordmark.svg" />
-  <img alt="sendgrid-logo" width="48" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/sendgrid/sendgrid-plain-wordmark.svg" />
-  <img alt="twilio-logo" width="48" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/twilio/twilio-plain-wordmark.svg" />
-  <img alt="jwt-logo" width="48" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/jwt/jwt-original-wordmark.svg" />
-  <img alt="rbac-logo" width="48" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/rbac/rbac-original-wordmark.svg" />
-  <img alt="nestjs-logo" width="48" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nestjs/nestjs-original-wordmark.svg" />
 </div>
 
 ---
