@@ -45,7 +45,13 @@ The API includes robust authentication with JWT, role-based access control (RBAC
   <img alt="nest-logo" width="48" style="margin-right: 12px" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nestjs/nestjs-original-wordmark.svg" />
   <img alt="prisma-logo" width="48" style="margin-right: 12px" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/prisma/prisma-original.svg" />
   <img alt="nodejs-logo" width="48" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nodejs/nodejs-original-wordmark.svg" />
-  
+  <img alt="graphql-logo" width="48" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/graphql/graphql-plain-wordmark.svg" />
+  <img alt="postgresql-logo" width="48" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/postgresql/postgresql-original-wordmark.svg" />
+  <img alt="sendgrid-logo" width="48" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/sendgrid/sendgrid-plain-wordmark.svg" />
+  <img alt="twilio-logo" width="48" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/twilio/twilio-plain-wordmark.svg" />
+  <img alt="jwt-logo" width="48" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/jwt/jwt-original-wordmark.svg" />
+  <img alt="rbac-logo" width="48" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/rbac/rbac-original-wordmark.svg" />
+  <img alt="nestjs-logo" width="48" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nestjs/nestjs-original-wordmark.svg" />
 </div>
 
 ---
@@ -146,12 +152,7 @@ http://localhost:5000
 --- 
 
 ## 8. Deployment
-
-The live version of this application is hosted on [Render](https://render.com/).
-
-- **API Base URL:** [`https://schedule-pro-api.onrender.com`](https://schedule-pro-api.onrender.com)
-- **Documentation (Swagger):** The documentation is not acessible in production
->⚠️ Sometimes when the API is down for a while, it needs some time to load.
+The deployment is temporarily disabled. While i configure the deployment in google cloud.
 ---
 
 ## 9. Documentation
@@ -160,12 +161,9 @@ The API is fully documented and designed for easy integration. Each new endpoint
 ### Pages Documentation
 Each module in the codebase contains a corresponding `.md` file that serves as a usage guide and endpoint showcase.
 
-### OpenApi (Swagger)
-The project exposes a Swagger UI for exploring and testing endpoints.
-
 Access it locally at:
 ```bash
-http://localhost:5000/docs
+http://localhost:5000/graphql
 ```
 
 ---
