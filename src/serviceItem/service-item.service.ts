@@ -3,6 +3,10 @@ import { Prisma, ServiceItem } from 'prisma/app/generated/prisma/client';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
 import { UserService } from 'src/user/user.service';
 import { ServiceItemRepository } from './service-item.repository';
+import { ServiceItemType } from './type/service-item.type';
+import { CreateServiceItemInput } from './dtos/create-service-item.input';
+import { UpdateServiceItemInput } from './dtos/update-service-item.dto';
+import { Specification } from 'src/common/specs/specification.interface';
 
 @Injectable()
 export class ServiceItemService {
@@ -12,6 +16,24 @@ export class ServiceItemService {
   ) {}
 
   /**
+   * Maps a ServiceItem entity to a ServiceItemType object.
+   * Populates required fields, including discount, finalPrice, staffServices, and reviews with default or placeholder values.
+   *
+   * @param {ServiceItem} serviceItem - The ServiceItem entity to map.
+   * @returns {ServiceItemType} - The mapped ServiceItemType object.
+   */
+  toServiceItemType(serviceItem: ServiceItem): ServiceItemType {
+    return {
+      ...serviceItem,
+      description: serviceItem.description ?? '',
+      basePrice: serviceItem.basePrice?.toNumber?.() ?? 0,
+      deletedAt: serviceItem.deletedAt ?? undefined,
+      updatedAt: serviceItem.updatedAt ?? undefined,
+      createdAt: serviceItem.createdAt ?? undefined,
+    };
+  }
+
+  /**
    * Retrieves all ServiceItem objects from the database.
    *
    * @returns {Promise<ServiceItem[]>} - A promise that resolves to an array of ServiceItem objects.
@@ -19,11 +41,34 @@ export class ServiceItemService {
    * @example
    * const serviceItems = await serviceItemService.retrieveAll();
    */
-  async findMany(args: Prisma.ServiceItemFindManyArgs): Promise<ServiceItem[]> {
-    const retrivedServiceItems =
-      await this.serviceItemRepository.findMany(args);
+  async findMany(
+    spec?: Specification<ServiceItem>,
+    options?: {
+      where?: Prisma.ServiceItemWhereInput;
+      skip?: number;
+      take?: number;
+      include?: Prisma.ServiceItemInclude;
+      orderBy?: Prisma.ServiceItemOrderByWithRelationInput;
+    },
+  ): Promise<ServiceItem[]> {
+    return await this.serviceItemRepository.findMany({
+      where: options?.where || spec?.toPrismaWhere(),
+      skip: options?.skip,
+      take: options?.take,
+      include: options?.include,
+      orderBy: options?.orderBy,
+    });
+  }
 
-    return retrivedServiceItems;
+  /**
+   * Counts the number of ServiceItem objects in the database.
+   *
+   * @param {Prisma.ServiceItemCountArgs} args - The arguments to count the ServiceItem objects.
+   *
+   * @returns {Promise<number>} - A promise that resolves to the number of ServiceItem objects in the database.
+   */
+  async count(args: Prisma.ServiceItemCountArgs): Promise<number> {
+    return await this.serviceItemRepository.count(args);
   }
 
   /**
@@ -55,22 +100,20 @@ export class ServiceItemService {
     return retrivedServiceItem;
   }
 
-  async create(
-    serviceItem: Prisma.ServiceItemCreateInput,
-  ): Promise<ServiceItem> {
-    if (
-      !serviceItem.name ||
-      !serviceItem.basePrice ||
-      !serviceItem.durationMinutes
-    ) {
+  async create(serviceItemInput: CreateServiceItemInput): Promise<ServiceItem> {
+    if (!serviceItemInput.name || !serviceItemInput.basePrice) {
       throw new MissingRequiredPropertiesException(
         'Service item is missing required properties',
       );
     }
 
-    return await this.serviceItemRepository.create(serviceItem);
+    return await this.serviceItemRepository.create({
+      data: {
+        ...serviceItemInput,
+        tags: serviceItemInput.tags ?? [],
+      },
+    });
   }
-
   /**
    * Deletes a ServiceItem from the database.
    *
@@ -98,14 +141,14 @@ export class ServiceItemService {
    *
    * @throws {NotFoundException} - Thrown if the ServiceItem with the given id does not exist in the database.
    */
-  async update(
-    id: string,
-    serviceItem: Prisma.ServiceItemUpdateInput,
-  ): Promise<void> {
+  async update(id: string, serviceItem: UpdateServiceItemInput): Promise<void> {
     if (!(await this.findById(id))) {
       throw new NotFoundException('Service not found');
     }
 
-    await this.serviceItemRepository.update(id, serviceItem);
+    await this.serviceItemRepository.update(id, {
+      ...serviceItem,
+      tags: serviceItem.tags ?? [],
+    });
   }
 }

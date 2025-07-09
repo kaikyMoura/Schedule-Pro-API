@@ -6,7 +6,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { compare } from 'bcrypt';
-import { Prisma, Role, User } from 'prisma/app/generated/prisma/client';
+import { Prisma, User } from 'prisma/app/generated/prisma/client';
+import { Specification } from 'src/common/specs/specification.interface';
 import { InvalidCredentialsException } from 'src/common/exceptions/invalid-credentials.exception';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
 import { UserNotFoundException } from 'src/common/exceptions/user-not-found.exception';
@@ -15,8 +16,11 @@ import { ChangePasswordInput } from './input/change-password.input';
 import { CreateUserInput } from './input/create-user.input';
 import { LoginUserInput } from './input/login-user.input';
 import { UpdateUserInput } from './input/update-user.input';
-import { UserConnection } from './type/user-connection.type';
-import { UserType } from './type/user.type';
+import { EmailSpecification } from './specs/email.spec';
+import { PasswordTokenSpecification } from './specs/password-token.spec';
+import { PhoneSpecification } from './specs/phone.spec';
+import { VerificationTokenSpecification } from './specs/verification-token.spec';
+import { UserType } from './type/user.entity';
 import { UserRepository } from './user.repository';
 
 @Injectable()
@@ -35,18 +39,7 @@ export class UserService {
    */
   toUserType(user: User): UserType {
     return {
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      phone: user.phone,
-      avatar: user.avatar!,
-      dateOfBirth: user.dateOfBirth!,
-      gender: user.gender ?? undefined,
-      address: user.address ?? undefined,
-      city: user.city ?? undefined,
-      state: user.state ?? undefined,
-      zipCode: user.zipCode ?? undefined,
-      country: user.country ?? undefined,
+      ...user,
     };
   }
 
@@ -68,38 +61,42 @@ export class UserService {
   /**
    * Retrieves all Users by their role.
    *
-   * @param {UserFilterInput} filter - The filter of the Users to retrieve.
-   * @param {PaginationOptions<{
-   *   firstName?: 'asc' | 'desc';
-   *   lastName?: 'asc' | 'desc';
-   *   email?: 'asc' | 'desc';
-   *   phone?: 'asc' | 'desc';
-   *   role?: 'asc' | 'desc';
-   * }>} pagination - The pagination of the Users to retrieve.
+   * @param {Specification<User>} spec - The specification for finding many users.
+   * @param {Prisma.UserFindManyArgs} options - The options for finding many users.
    *
    * @returns {Promise<User[]>} - A promise that resolves to the User data.
-   */
-  async findMany(args: Prisma.UserFindManyArgs): Promise<UserConnection> {
-    const users = await this.userRepository.findMany(args);
-
-    return {
-      nodes: users.map((user) => this.toUserType(user)),
-      totalCount: users.length,
-      hasNextPage: false,
-      hasPreviousPage: false,
-    };
-  }
-
-  /**
-   * Retrieves all Users by their role.
    *
-   * @param {Role} role - The role of the Users to retrieve.
-   *
-   * @returns {Promise<User[]>} - A promise that resolves to the User data.
+   * @example
+   * ```ts
+   * const spec = new UsersIdsSpec(['1', '2', '3']);
+   * const users = await this.userService.findMany(spec, {
+   *   include: {
+   *     appointments: true,
+   *     reviews: true,
+   *   },
+   *   orderBy: {
+   *     createdAt: 'desc',
+   *   },
+   * });
+   * ```
    */
-  async findManyByRole(role: Role): Promise<User[]> {
-    const users = await this.userRepository.findMany({ where: { role } });
-    return users;
+  async findMany(
+    spec?: Specification<User>,
+    options?: {
+      where?: Prisma.UserWhereInput;
+      skip?: number;
+      take?: number;
+      include?: Prisma.UserInclude;
+      orderBy?: Prisma.UserOrderByWithRelationInput;
+    },
+  ): Promise<User[]> {
+    return await this.userRepository.findMany({
+      where: options?.where || spec?.toPrismaWhere(),
+      skip: options?.skip,
+      take: options?.take,
+      include: options?.include,
+      orderBy: options?.orderBy,
+    });
   }
 
   /**
@@ -121,8 +118,10 @@ export class UserService {
    * @returns {Promise<User | null>} - A promise that resolves to the User with the given email, or null if no User is found.
    */
   async findByEmail(email: string): Promise<User | null> {
-    const user = await this.userRepository.findUnique({ where: { email } });
-    return user;
+    const spec = new EmailSpecification(email);
+    return await this.userRepository.findUnique({
+      where: spec.toPrismaWhere(),
+    });
   }
 
   /**
@@ -133,7 +132,10 @@ export class UserService {
    * @returns {Promise<User | null>} - A promise that resolves to the User with the given phone, or null if no User is found.
    */
   async findByPhone(phone: string): Promise<User | null> {
-    return await this.userRepository.findUnique({ where: { phone } });
+    const spec = new PhoneSpecification(phone);
+    return await this.userRepository.findUnique({
+      where: spec.toPrismaWhere(),
+    });
   }
 
   /**
@@ -278,7 +280,32 @@ export class UserService {
 
     const hashedPassword = await this.hashingService.hash(newPassword);
 
-    await this.userRepository.updatePassword(userId, hashedPassword);
+    await this.updatePassword(userId, hashedPassword);
+  }
+
+  /**
+   * Verifies a User in the database.
+   *
+   * @param {string} id - The unique identifier of the User to verify.
+   *
+   * @returns {Promise<void>} - A promise that resolves when the User has been verified.
+   */
+  async verifyUser(id: string): Promise<void> {
+    await this.userRepository.update(id, { verifiedAt: new Date() });
+  }
+
+  /**
+   * Updates the password of an existing User in the database.
+   *
+   * @param {string} id - The unique identifier of the User to update.
+   * @param {string} password - The new password for the User.
+   *
+   * @returns {Promise<void>} - A promise that resolves when the User's password has been updated.
+   *
+   * @throws {Prisma.NotFoundError} - Thrown if the User with the given id does not exist in the database.
+   */
+  async updatePassword(id: string, password: string): Promise<void> {
+    await this.userRepository.update(id, { password: password });
   }
 
   /**
@@ -308,10 +335,7 @@ export class UserService {
 
     const hashedNewPassword = await this.hashingService.hash(newPassword);
 
-    await this.userRepository.updatePassword(
-      retrievedUser.id,
-      hashedNewPassword,
-    );
+    await this.updatePassword(retrievedUser.id, hashedNewPassword);
 
     return 'Password reset successfully';
   }
@@ -323,7 +347,7 @@ export class UserService {
    *
    * @returns {Promise<UserType>} - A promise that resolves to the User data without the password if the credentials are valid, or throws an error if they are not.
    */
-  async _validateCredentials(user: LoginUserInput): Promise<UserType> {
+  async validateCredentials(user: LoginUserInput): Promise<User> {
     const { email, password } = user;
 
     const retrivedUser = await this.findByEmail(email);
@@ -336,13 +360,7 @@ export class UserService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return {
-      firstName: retrivedUser.firstName,
-      lastName: retrivedUser.lastName,
-      email: retrivedUser.email,
-      phone: retrivedUser.phone,
-      avatar: retrivedUser.avatar!,
-    };
+    return retrivedUser;
   }
 
   /**
@@ -357,11 +375,10 @@ export class UserService {
     tokenHash: string,
     expiresAt: Date,
   ): Promise<void> {
-    await this.userRepository.updatePasswordResetToken(
-      id,
-      tokenHash,
-      expiresAt,
-    );
+    await this.userRepository.update(id, {
+      passwordResetToken: tokenHash,
+      passwordResetTokenExpiresAt: expiresAt,
+    });
   }
 
   /**
@@ -371,8 +388,9 @@ export class UserService {
    * @returns {Promise<User | null>} - A promise that resolves to the User with the given password reset token, or null if no User is found.
    */
   async findByPasswordResetToken(tokenHash: string): Promise<User | null> {
+    const spec = new PasswordTokenSpecification(tokenHash);
     return await this.userRepository.findFirst({
-      where: { passwordResetToken: tokenHash },
+      where: spec.toPrismaWhere(),
     });
   }
 
@@ -384,8 +402,9 @@ export class UserService {
    * @returns {Promise<User | null>} - A promise that resolves to the User with the given verification token, or null if no User is found.
    */
   async findByVerificationToken(tokenHash: string): Promise<User | null> {
+    const spec = new VerificationTokenSpecification(tokenHash);
     return await this.userRepository.findFirst({
-      where: { verificationToken: tokenHash },
+      where: spec.toPrismaWhere(),
     });
   }
 }

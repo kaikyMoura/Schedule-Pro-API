@@ -12,7 +12,7 @@ import { HashingService } from 'src/hashing/hashing.service';
 import { NotificationService } from 'src/notification/notification.service';
 import { CreateUserInput } from 'src/user/input/create-user.input';
 import { LoginUserInput } from 'src/user/input/login-user.input';
-import { UserType } from 'src/user/type/user.type';
+import { UserType } from 'src/user/type/user.entity';
 import { UserSessionService } from '../user-session/user-session.service';
 import { UserService } from '../user/user.service';
 import { TokenService } from './token.service';

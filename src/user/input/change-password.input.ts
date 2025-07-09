@@ -1,6 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsString, MinLength, Matches, IsOptional } from 'class-validator';
-import { Match } from 'src/common/config/validators/match.validator';
+import { Match } from 'src/common/validators/match.validator';
 
 @InputType()
 export class ChangePasswordInput {

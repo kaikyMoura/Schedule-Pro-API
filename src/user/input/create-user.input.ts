@@ -13,6 +13,8 @@ import {
   MinLength,
 } from 'class-validator';
 import { Gender, Role } from 'prisma/app/generated/prisma/client';
+import { IsUniqueEmail } from 'src/common/validators/unique-mail.validator';
+import { IsUniquePhone } from 'src/common/validators/unique-phone.validator';
 
 @InputType()
 export class CreateUserInput {
@@ -20,6 +22,7 @@ export class CreateUserInput {
   @IsEmail({}, { message: 'Please provide a valid email address' })
   @IsNotEmpty()
   @Transform(({ value }) => (value as string).toLowerCase().trim())
+  @IsUniqueEmail({ message: 'This email is already registered.' })
   email: string;
 
   @Field()
@@ -47,7 +50,8 @@ export class CreateUserInput {
 
   @Field()
   @IsNotEmpty({ message: 'Phone number is required' })
-  @IsPhoneNumber(undefined, { message: 'Please provide a valid phone number' })
+  @IsPhoneNumber('BR', { message: 'Please provide a valid phone number' })
+  @IsUniquePhone({ message: 'This phone number is already registered.' })
   phone: string;
 
   @Field({ nullable: true })

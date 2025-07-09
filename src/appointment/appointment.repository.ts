@@ -6,7 +6,6 @@ import {
 } from 'prisma/app/generated/prisma/client';
 import { BaseRepository } from 'src/common/base/base.repository';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { UpdateAppointmentDto } from './input/update-appointment.input';
 
 @Injectable()
 export class AppointmentRepository implements BaseRepository<Appointment> {
@@ -56,7 +55,7 @@ export class AppointmentRepository implements BaseRepository<Appointment> {
    */
   async update(
     id: string,
-    updateAppointmentDto: UpdateAppointmentDto,
+    updateAppointmentDto: Prisma.AppointmentUpdateInput,
   ): Promise<void> {
     await this.prisma.appointment.update({
       where: { id: id },
@@ -132,6 +131,13 @@ export class AppointmentRepository implements BaseRepository<Appointment> {
     return await this.prisma.appointment.findFirst(args);
   }
 
+  /**
+   * Deactivates an Appointment in the database.
+   *
+   * @param {string} id - The id of the Appointment to deactivate.
+   *
+   * @returns {Promise<void>} - A promise that resolves when the Appointment has been deactivated.
+   */
   async deactivate(id: string): Promise<void> {
     await this.prisma.appointment.update({
       where: { id: id },
@@ -139,6 +145,13 @@ export class AppointmentRepository implements BaseRepository<Appointment> {
     });
   }
 
+  /**
+   * Checks if an Appointment exists in the database.
+   *
+   * @param {string} id - The id of the Appointment to check.
+   *
+   * @returns {Promise<boolean>} - A promise that resolves to true if the Appointment exists, false otherwise.
+   */
   async exists(id: string): Promise<boolean> {
     const data = await this.prisma.appointment.findUnique({
       where: { id: id },
@@ -146,10 +159,24 @@ export class AppointmentRepository implements BaseRepository<Appointment> {
     return !!data;
   }
 
-  async count(where: Prisma.AppointmentWhereInput = {}): Promise<number> {
-    return await this.prisma.appointment.count({ where });
+  /**
+   * Counts the number of Appointments that match the given criteria.
+   *
+   * @param {Prisma.AppointmentCountArgs} args - The arguments to filter the appointments.
+   *
+   * @returns {Promise<number>} - A promise that resolves to the number of Appointments that match the given criteria.
+   */
+  async count(args?: Prisma.AppointmentCountArgs): Promise<number> {
+    return await this.prisma.appointment.count(args);
   }
 
+  /**
+   * Restores a deleted Appointment.
+   *
+   * @param {string} id - The id of the Appointment to restore.
+   *
+   * @returns {Promise<Appointment>} - A promise that resolves to the restored Appointment.
+   */
   async restore(id: string): Promise<Appointment> {
     return await this.prisma.appointment.update({
       where: { id: id },

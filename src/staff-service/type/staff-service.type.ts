@@ -1,10 +1,8 @@
-import { Field, Float, ID, Int, ObjectType } from '@nestjs/graphql';
-import { ServiceItemType } from 'src/serviceItem/type/service-item.type';
-import { UserType } from 'src/user/type/user.type';
+import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
 
 @ObjectType()
 export class StaffServiceType {
-  @Field(() => ID)
+  @Field(() => String)
   id: string;
 
   @Field(() => String)
@@ -13,11 +11,11 @@ export class StaffServiceType {
   @Field(() => String)
   serviceId: string;
 
-  @Field(() => Float)
-  customPrice: number;
+  @Field(() => Float, { nullable: true })
+  customPrice: number | null;
 
-  @Field(() => Int)
-  customDuration: number;
+  @Field(() => Int, { nullable: true })
+  customDuration: number | null;
 
   @Field(() => Boolean)
   isActive: boolean;
@@ -25,21 +23,15 @@ export class StaffServiceType {
   @Field(() => Boolean)
   isPreferred: boolean;
 
-  @Field(() => Int)
-  skillLevel: number;
+  @Field(() => Int, { nullable: true })
+  skillLevel: number | null;
 
   @Field(() => Int, { nullable: true })
-  experience: number;
+  experience: number | null;
 
   @Field(() => Date, { nullable: true })
   createdAt?: Date;
 
   @Field(() => Date, { nullable: true })
   updatedAt?: Date;
-
-  @Field(() => UserType)
-  staff: UserType;
-
-  @Field(() => ServiceItemType)
-  service: ServiceItemType;
 }

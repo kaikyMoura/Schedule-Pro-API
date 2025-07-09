@@ -4,7 +4,7 @@ import {
   NotificationChannel,
   NotificationType as PrismaNotificationType,
 } from 'prisma/app/generated/prisma/client';
-import { UserType } from 'src/user/type/user.type';
+import { UserType } from 'src/user/type/user.entity';
 
 @ObjectType()
 export class NotificationType {

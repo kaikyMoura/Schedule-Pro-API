@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
-import { MailModule } from 'src/mail/mail.module';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserRepository } from './user.repository';
 import { UserResolver } from './user.resolver';
 import { UserService } from './user.service';
+import { NotificationModule } from 'src/notification/notification.module';
 
 @Module({
-  imports: [MailModule],
+  imports: [NotificationModule],
   providers: [UserService, UserRepository, UserResolver, PrismaService],
-  exports: [UserService, UserRepository],
+  exports: [UserService],
 })
 export class UserModule {}

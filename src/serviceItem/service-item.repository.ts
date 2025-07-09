@@ -10,15 +10,12 @@ export class ServiceItemRepository implements BaseRepository<ServiceItem> {
   /**
    * Creates a new ServiceItem in the database.
    *
-   * @param {Prisma.ServiceItemCreateInput} data - The data to create the ServiceItem with.
+   * @param {Prisma.ServiceItemCreateArgs} data - The data to create the ServiceItem with.
    *
    * @returns {Promise<ServiceItem>} - A promise that resolves to the created ServiceItem.
    */
-  async create(data: Prisma.ServiceItemCreateInput): Promise<ServiceItem> {
-    const response = await this.prisma.serviceItem.create({
-      data,
-    });
-    return response;
+  async create(data: Prisma.ServiceItemCreateArgs): Promise<ServiceItem> {
+    return await this.prisma.serviceItem.create(data);
   }
 
   /**
@@ -43,10 +40,8 @@ export class ServiceItemRepository implements BaseRepository<ServiceItem> {
    *
    * @returns {Promise<ServiceItem[]>} - A promise that resolves to an array of ServiceItem objects.
    */
-  async findMany(
-    options: Prisma.ServiceItemFindManyArgs,
-  ): Promise<ServiceItem[]> {
-    return await this.prisma.serviceItem.findMany(options);
+  async findMany(args: Prisma.ServiceItemFindManyArgs): Promise<ServiceItem[]> {
+    return await this.prisma.serviceItem.findMany(args);
   }
 
   /**
@@ -88,9 +83,9 @@ export class ServiceItemRepository implements BaseRepository<ServiceItem> {
   }
 
   async findFirst(
-    options: Prisma.ServiceItemFindFirstArgs,
+    args: Prisma.ServiceItemFindFirstArgs,
   ): Promise<ServiceItem | null> {
-    return await this.prisma.serviceItem.findFirst(options);
+    return await this.prisma.serviceItem.findFirst(args);
   }
 
   async deactivate(id: string): Promise<void> {
@@ -107,8 +102,8 @@ export class ServiceItemRepository implements BaseRepository<ServiceItem> {
     );
   }
 
-  async count(where: Prisma.ServiceItemWhereInput): Promise<number> {
-    return await this.prisma.serviceItem.count({ where });
+  async count(args: Prisma.ServiceItemCountArgs): Promise<number> {
+    return await this.prisma.serviceItem.count(args);
   }
 
   async restore(id: string): Promise<ServiceItem> {

@@ -1,6 +1,6 @@
 import { Field, ID, InputType } from '@nestjs/graphql';
 import { DayOfWeek } from 'prisma/app/generated/prisma/client';
-import { UserType } from 'src/user/type/user.type';
+import { UserType } from 'src/user/type/user.entity';
 
 @InputType()
 export class StaffAvailabilityType {

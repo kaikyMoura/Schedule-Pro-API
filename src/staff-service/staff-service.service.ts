@@ -5,9 +5,13 @@ import {
 } from '@nestjs/common';
 import { Prisma, Role, StaffService } from 'prisma/app/generated/prisma/client';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
+import { Specification } from 'src/common/specs/specification.interface';
 import { ServiceItemService } from 'src/serviceItem/service-item.service';
 import { UserService } from 'src/user/user.service';
+import { WithServiceItemIdSpec } from './specs/with-service-item-id.spec';
+import { WithStaffIdSpec } from './specs/with-staff-id.spec';
 import { StaffServiceRepository } from './staff-service.repository';
+import { StaffServiceType } from './type/staff-service.type';
 
 @Injectable()
 export class StaffServiceService {
@@ -16,6 +20,19 @@ export class StaffServiceService {
     private readonly userService: UserService,
     private readonly serviceItemService: ServiceItemService,
   ) {}
+
+  /**
+   * Converts a StaffService entity to a StaffServiceType object.
+   *
+   * @param {StaffService} staffService - The StaffService entity to convert.
+   * @returns {StaffServiceType} - The converted StaffServiceType object.
+   */
+  toStaffServiceType(staffService: StaffService): StaffServiceType {
+    return {
+      ...staffService,
+      customPrice: staffService.customPrice?.toNumber() ?? 0,
+    };
+  }
 
   /**
    * Retrieves all StaffService objects from the database.
@@ -27,9 +44,22 @@ export class StaffServiceService {
    * const staffServices = await staffServiceService.findMany();
    */
   async findMany(
-    args: Prisma.StaffServiceFindManyArgs,
+    spec?: Specification<StaffService>,
+    options?: {
+      where?: Prisma.StaffServiceWhereInput;
+      skip?: number;
+      take?: number;
+      include?: Prisma.StaffServiceInclude;
+      orderBy?: Prisma.StaffServiceOrderByWithRelationInput;
+    },
   ): Promise<StaffService[]> {
-    return await this.staffServiceRepository.findMany(args);
+    return await this.staffServiceRepository.findMany({
+      where: options?.where || spec?.toPrismaWhere(),
+      skip: options?.skip,
+      take: options?.take,
+      include: options?.include,
+      orderBy: options?.orderBy,
+    });
   }
 
   /**
@@ -50,13 +80,15 @@ export class StaffServiceService {
       throw new MissingRequiredPropertiesException();
     }
 
-    const retrievedStaffService = await this.findMany({
-      where: {
-        staff: {
-          id: staffId,
+    const retrievedStaffService = await this.findMany(
+      new WithStaffIdSpec(staffId),
+      {
+        include: {
+          staff: true,
+          service: true,
         },
       },
-    });
+    );
 
     if (!retrievedStaffService) {
       throw new NotFoundException('No services related for this staff');
@@ -84,13 +116,15 @@ export class StaffServiceService {
       throw new MissingRequiredPropertiesException();
     }
 
-    const retrievedStaffService = await this.findMany({
-      where: {
-        service: {
-          id: serviceId,
+    const retrievedStaffService = await this.findMany(
+      new WithServiceItemIdSpec(serviceId),
+      {
+        include: {
+          staff: true,
+          service: true,
         },
       },
-    });
+    );
 
     if (!retrievedStaffService) {
       throw new NotFoundException('No services related for this staff');

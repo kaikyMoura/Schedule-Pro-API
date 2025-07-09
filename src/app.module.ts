@@ -25,19 +25,27 @@ import { UserModule } from './user/user.module';
 import { CommonModule } from './common/common.module';
 import { HealthModule } from './health/health.module';
 
-import { GlobalGuard } from './common/guards/global.guard';
-import { LoggerMiddleware } from './common/middlewares/logger.middleware';
+import { AppointmentService } from './appointment/appointment.service';
 import cacheConfig from './common/config/cache.config';
 import databaseConfig from './common/config/db.config';
 import graphqlConfig from './common/config/graphql.config';
 import jwtConfig from './common/config/jwt.config';
-import { StaffAvailabilityModule } from './staff-availability/staff-availability.module';
-import { LoggerModule } from './common/logger/logger.module';
-import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { GlobalGuard } from './common/guards/global.guard';
+import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { LoggerModule } from './common/logger/logger.module';
+import { LoggerMiddleware } from './common/middlewares/logger.middleware';
+import { CustomRequest } from './common/types/custom-request';
+import { ServiceItemDataLoader } from './graphql/loaders/service-item.dataloader';
+import { UserDataLoader } from './graphql/loaders/user.dataloader';
 import { HashingModule } from './hashing/hashing.module';
-import { ReviewModule } from './review/review.module';
 import { NotificationModule } from './notification/notification.module';
+import { ReviewService } from './reviews/review.service';
+import { ServiceItemService } from './serviceItem/service-item.service';
+import { StaffAvailabilityModule } from './staff-availability/staff-availability.module';
+import { StaffServiceService } from './staff-service/staff-service.service';
+import { UserService } from './user/user.service';
+import { ReviewModule } from './reviews/review.module';
 
 @Module({
   imports: [
@@ -107,13 +115,33 @@ import { NotificationModule } from './notification/notification.module';
       driver: ApolloDriver,
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
+      useFactory: (
+        configService: ConfigService,
+        reviewService: ReviewService,
+        appointmentService: AppointmentService,
+        serviceItemService: ServiceItemService,
+        userService: UserService,
+        staffServiceService: StaffServiceService,
+      ) => ({
         autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
         sortSchema: true,
         playground: configService.get<string>('NODE_ENV') !== 'production',
         introspection: configService.get<string>('NODE_ENV') !== 'production',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        context: ({ req, res }) => ({ req, res }),
+        context: ({ req }: { req: CustomRequest }) => ({
+          currentUser: req.user,
+          userDataLoader: new UserDataLoader(
+            reviewService,
+            appointmentService,
+            userService,
+          ).createUserLoader(),
+          serviceItemDataLoader: new ServiceItemDataLoader(
+            serviceItemService,
+            appointmentService,
+            staffServiceService,
+            reviewService,
+            userService,
+          ).createServiceItemLoader(),
+        }),
         formatError: (error) => ({
           message: error.message,
           code: error.extensions?.code,

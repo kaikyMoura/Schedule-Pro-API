@@ -1,10 +1,10 @@
 import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
-import { AppointmentType } from 'src/appointment/type/appointment.type';
-import { ReviewType } from 'src/review/type/review.type';
-import { StaffServiceType } from 'src/staff-service/type/staff-service.type';
 
 @ObjectType()
 export class ServiceItemType {
+  @Field(() => String)
+  id: string;
+
   @Field(() => String)
   name: string;
 
@@ -26,32 +26,26 @@ export class ServiceItemType {
   @Field(() => Int)
   bufferMinutes: number;
 
-  @Field(() => Int)
-  discount: number;
-
-  @Field(() => Float)
-  finalPrice: number;
-
   @Field(() => Boolean)
   isActive: boolean;
 
   @Field(() => Boolean)
   isOnline: boolean;
 
-  @Field(() => Int)
-  maxAdvanceBooking: number;
+  @Field(() => Int, { nullable: true })
+  maxAdvanceBooking: number | null;
 
-  @Field(() => Int)
-  minAdvanceBooking: number;
+  @Field(() => Int, { nullable: true })
+  minAdvanceBooking: number | null;
 
-  @Field(() => String)
-  color: string;
+  @Field(() => String, { nullable: true })
+  color: string | null;
 
-  @Field(() => String)
-  icon: string;
+  @Field(() => String, { nullable: true })
+  icon: string | null;
 
-  @Field(() => [String])
-  tags: string[];
+  @Field(() => [String], { nullable: true })
+  tags: string[] | null;
 
   @Field(() => Date, { nullable: true })
   createdAt?: Date;
@@ -61,10 +55,4 @@ export class ServiceItemType {
 
   @Field(() => Date, { nullable: true })
   deletedAt?: Date;
-
-  @Field(() => [AppointmentType])
-  staffServices: StaffServiceType[];
-
-  @Field(() => [ReviewType])
-  reviews: ReviewType[];
 }

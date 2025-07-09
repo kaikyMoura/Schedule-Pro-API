@@ -11,11 +11,14 @@ import {
   User,
 } from 'prisma/app/generated/prisma/client';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
+import { Specification } from 'src/common/specs/specification.interface';
 import { NotificationService } from 'src/notification/notification.service';
 import { ServiceItemService } from 'src/serviceItem/service-item.service';
+import { RoleSpecification } from 'src/user/specs/role.spec';
 import { UserService } from 'src/user/user.service';
 import { AppointmentRepository } from './appointment.repository';
-import { AppointmentType } from './type/appointment.type';
+import { UpdateAppointmentInput } from './dtos/update-appointment.input';
+import { AppointmentType } from './types/appointment.entity';
 
 @Injectable()
 export class AppointmentService {
@@ -35,16 +38,8 @@ export class AppointmentService {
    */
   toAppointmentType(appointment: Appointment): AppointmentType {
     return {
-      scheduledDate: appointment.scheduledDate,
-      scheduledTime: appointment.scheduledTime,
-      startTime: appointment.startTime,
-      endTime: appointment.endTime,
-      timezone: appointment.timezone,
-      status: appointment.status,
-      type: appointment.type,
-      notes: appointment.notes ?? '',
+      ...appointment,
       price: Number(appointment.price),
-      currency: appointment.currency,
       discount: Number(appointment.discount),
       finalPrice: Number(appointment.finalPrice),
     };
@@ -59,62 +54,43 @@ export class AppointmentService {
    * const allAppointments = await appointmentService.findMany();
    */
   async findMany(
-    args?: Prisma.AppointmentFindManyArgs,
+    spec?: Specification<Appointment>,
+    options?: {
+      where?: Prisma.AppointmentWhereInput;
+      skip?: number;
+      take?: number;
+      include?: Prisma.AppointmentInclude;
+      orderBy?: Prisma.AppointmentOrderByWithRelationInput;
+    },
   ): Promise<Appointment[]> {
-    return await this.appointmentRepository.findMany(args);
-  }
-
-  /**
-   * Retrieves all Appointment objects associated with a specific customer.
-   *
-   * @param {string} customerId - The unique identifier of the customer whose appointments are to be retrieved.
-   *
-   * @returns {Promise<Appointment[]>} - A promise that resolves to an array of Appointment objects
-   * containing details of the appointments associated with the specified customer.
-   *
-   * @example
-   * const customerAppointments = await appointmentService.retrieveAllByCustomerId('123456789');
-   *
-   * @throws {BadRequestException} - Thrown if the user is not a customer.
-   */
-  async findManyByCustomerId(customerId: string): Promise<Appointment[]> {
-    const user = await this.userService.findById(customerId);
-
-    if (user.role !== Role.CUSTOMER) {
-      throw new BadRequestException('User is not a customer');
-    }
-
-    return await this.findMany({
-      where: {
-        customerId,
-      },
+    return await this.appointmentRepository.findMany({
+      where: options?.where || spec?.toPrismaWhere(),
+      skip: options?.skip,
+      take: options?.take,
+      include: options?.include,
+      orderBy: options?.orderBy,
     });
   }
 
   /**
-   * Retrieves all Appointment objects associated with a specific staff member.
+   * Counts the number of Appointments that match the given criteria.
    *
-   * @param {string} staffId - The unique identifier of the staff member whose appointments are to be retrieved.
+   * @param {Specification<Appointment>} spec - The specification to filter the appointments.
+   * @param {Prisma.AppointmentCountArgs} options - The options to filter the appointments.
    *
-   * @returns {Promise<Appointment[]>} - A promise that resolves to an array of Appointment objects
-   * containing details of the appointments associated with the specified staff member.
-   *
-   * @example
-   * const staffAppointments = await appointmentService.retrieveAllByStaffId('123456789');
-   *
-   * @throws {BadRequestException} - Thrown if the user is not a staff member.
+   * @returns {Promise<number>} - A promise that resolves to the number of Appointments that match the given criteria.
    */
-  async findManyByStaffId(staffId: string): Promise<Appointment[]> {
-    const user = await this.userService.findById(staffId);
-
-    if (user.role !== Role.STAFF) {
-      throw new BadRequestException('User is not a staff member');
-    }
-
-    return await this.findMany({
-      where: {
-        staffId,
-      },
+  async count(
+    spec?: Specification<Appointment>,
+    options?: {
+      where?: Prisma.AppointmentWhereInput;
+      skip?: number;
+      take?: number;
+      orderBy?: Prisma.AppointmentOrderByWithRelationInput;
+    },
+  ): Promise<number> {
+    return await this.appointmentRepository.count({
+      where: options?.where || spec?.toPrismaWhere(),
     });
   }
 
@@ -271,7 +247,7 @@ export class AppointmentService {
    */
   async update(
     id: string,
-    updateAppointment: Prisma.AppointmentUpdateInput,
+    updateAppointment: UpdateAppointmentInput,
   ): Promise<void> {
     if (!(await this.findById(id))) {
       throw new NotFoundException('Appointment not found');
@@ -307,7 +283,9 @@ export class AppointmentService {
   private async findAvailableStaff(
     where: Prisma.AppointmentWhereInput,
   ): Promise<User | null> {
-    const availableStaff = await this.userService.findManyByRole(Role.STAFF);
+    const availableStaff = await this.userService.findMany(
+      new RoleSpecification(Role.STAFF),
+    );
 
     if (!availableStaff) {
       return null;

@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, User } from 'prisma/app/generated/prisma/client';
 import { BaseRepository } from 'src/common/base/base.repository';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { UpdateUserInput } from './input/update-user.input';
 
 @Injectable()
 export class UserRepository extends BaseRepository<User> {
@@ -36,10 +35,22 @@ export class UserRepository extends BaseRepository<User> {
     return await this.prisma.user.findUnique(args);
   }
 
+  /**
+   * Retrieves multiple User objects based on given criteria.
+   *
+   * @param {Prisma.UserFindManyArgs} args - The criteria for finding the Users.
+   * @returns {Promise<User[]>} - A promise that resolves to an array of User objects.
+   */
   async findMany(args: Prisma.UserFindManyArgs): Promise<User[]> {
     return await this.prisma.user.findMany(args);
   }
 
+  /**
+   * Retrieves a single User object based on given criteria.
+   *
+   * @param {Prisma.UserFindFirstArgs} args - The criteria for finding the User.
+   * @returns {Promise<User | null>} - A promise that resolves to the User object if found, or null otherwise.
+   */
   async findFirst(args: Prisma.UserFindFirstArgs): Promise<User | null> {
     return await this.prisma.user.findFirst(args);
   }
@@ -101,47 +112,14 @@ export class UserRepository extends BaseRepository<User> {
    *
    * @throws {Prisma.NotFoundError} - Thrown if the User with the given id does not exist in the database.
    */
-  async update(id: string, user: UpdateUserInput): Promise<void> {
+  async update(id: string, user: Prisma.UserUpdateInput): Promise<void> {
     await this.prisma.user.update({
       where: { id: id },
-      data: user && {
+      data: {
+        ...user,
         updatedAt: new Date(),
       },
     });
-  }
-
-  /**
-   * Updates the password of an existing User in the database.
-   *
-   * @param {string} id - The unique identifier of the User to update.
-   * @param {string} password - The new password for the User.
-   *
-   * @returns {Promise<void>} - A promise that resolves when the User's password has been updated.
-   *
-   * @throws {Prisma.NotFoundError} - Thrown if the User with the given id does not exist in the database.
-   */
-  async updatePassword(id: string, password: string): Promise<void> {
-    await this.prisma.user.update({
-      where: { id },
-      data: { password: password },
-    });
-  }
-
-  /**
-   * Verifies a User in the database.
-   *
-   * @param {string} id - The unique identifier of the User to verify.
-   *
-   * @returns {Promise<void>} - A promise that resolves when the User has been verified.
-   *
-   * @throws {Prisma.NotFoundError} - Thrown if the User with the given id does not exist in the database.
-   */
-  async verifyUser(id: string): Promise<User> {
-    const user = await this.prisma.user.update({
-      where: { id },
-      data: { verifiedAt: new Date() },
-    });
-    return user;
   }
 
   /**
@@ -184,31 +162,6 @@ export class UserRepository extends BaseRepository<User> {
     await this.prisma.user.update({
       where: { id: id },
       data: { isActive: true, deletedAt: null, updatedAt: new Date() },
-    });
-  }
-
-  /**
-   * Updates the password reset token of an existing User in the database.
-   *
-   * @param {string} id - The unique identifier of the User to update.
-   * @param {string} tokenHash - The hash of the password reset token.
-   * @param {Date} expiresAt - The date and time when the password reset token expires.
-   *
-   * @returns {Promise<void>} - A promise that resolves when the User's password reset token has been updated.
-   *
-   * @throws {Prisma.NotFoundError} - Thrown if the User with the given id does not exist in the database.
-   */
-  async updatePasswordResetToken(
-    id: string,
-    tokenHash: string,
-    expiresAt: Date,
-  ): Promise<void> {
-    await this.prisma.user.update({
-      where: { id },
-      data: {
-        passwordResetToken: tokenHash,
-        passwordResetTokenExpiresAt: expiresAt,
-      },
     });
   }
 }

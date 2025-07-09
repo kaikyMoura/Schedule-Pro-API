@@ -8,7 +8,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { LoginUserInput } from 'src/user/input/login-user.input';
 import { CustomRequest } from 'src/common/types/custom-request';
-import { CurrentUser } from 'src/user/decorators/current-user.dto';
+import { CurrentUser } from 'src/user/decorators/current-user.decorator';
 import { NotificationService } from 'src/notification/notification.service';
 
 @Resolver()

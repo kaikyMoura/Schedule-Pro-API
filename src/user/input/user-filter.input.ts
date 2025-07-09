@@ -1,5 +1,11 @@
 import { Field, InputType } from '@nestjs/graphql';
-import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsDate,
+  IsEnum,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { Role } from 'prisma/app/generated/prisma/client';
 
 @InputType()
@@ -25,10 +31,17 @@ export class UserFilterInput {
   isVerified?: boolean;
 
   @Field({ nullable: true })
+  @IsDate()
   @IsOptional()
   createdAfter?: Date;
 
   @Field({ nullable: true })
+  @IsDate()
   @IsOptional()
   createdBefore?: Date;
+
+  @Field({ nullable: true })
+  @IsBoolean()
+  @IsOptional()
+  isDeleted?: boolean;
 }

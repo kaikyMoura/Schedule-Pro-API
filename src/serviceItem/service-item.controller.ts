@@ -9,8 +9,8 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Roles } from 'src/user/decorators/role.decorator';
-import { CreateServiceItemDto } from './input/create-service-item.input';
-import { UpdateServiceItemDto } from './input/update-service-item.dto';
+import { CreateServiceItemDto } from './dtos/create-service-item.input';
+import { UpdateServiceItemDto } from './dtos/update-service-item.dto';
 import { ServiceItemService } from './service-item.service';
 
 @ApiTags('ServiceItem')
