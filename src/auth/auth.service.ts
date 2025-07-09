@@ -1,284 +1,320 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { InvalidCredentialsException } from 'src/common/exceptions/invalid-credentials.exception';
-import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
-import { UserNotFoundException } from 'src/common/exceptions/user-not-found.exception';
-import { MailService } from 'src/mail/mail.service';
-import { UserSessionRepository } from 'src/user-session/user-session.repository';
-import { LoginUserDto } from 'src/user/dtos/login-user.dto';
-import { UserService } from 'src/user/user.service';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { createHash, randomBytes } from 'crypto';
+import { User } from 'prisma/app/generated/prisma/client';
+import { HashingService } from 'src/hashing/hashing.service';
+import { NotificationService } from 'src/notification/notification.service';
+import { CreateUserInput } from 'src/user/input/create-user.input';
+import { LoginUserInput } from 'src/user/input/login-user.input';
+import { UserType } from 'src/user/type/user.type';
+import { UserSessionService } from '../user-session/user-session.service';
+import { UserService } from '../user/user.service';
 import { TokenService } from './token.service';
-import { CreateUserDto } from 'src/user/dtos/create-user.dto';
-import { ApiResponse } from 'src/common/types/api-resonse';
-import { BaseUserDto } from 'src/user/dtos/base-user.dto';
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+}
+export interface LoginResponse extends AuthTokens {
+  user: UserType;
+}
 
 @Injectable()
 export class AuthService {
+  private readonly maxLoginAttempts = 5;
+  private readonly lockoutDuration = 15 * 60 * 1000;
+  private readonly loginAttempts = new Map<
+    string,
+    { count: number; lastAttempt: Date }
+  >();
+
   constructor(
-    private readonly emailService: MailService,
     private readonly userService: UserService,
-    private readonly userSessionRepository: UserSessionRepository,
+    private readonly userSessionService: UserSessionService,
     private readonly tokenService: TokenService,
+    private readonly configService: ConfigService,
+    private readonly notificationService: NotificationService,
+    private readonly hashingService: HashingService,
   ) {}
 
-  /**
-   * Creates a new user session by generating a refresh token and access token.
-   *
-   * @param {Omit<BaseUserDto, 'password'>} user - The user data to be associated with the session. Omits the password field.
-   * @param {string} userAgent - The user agent string from the request header.
-   * @param {string} ip - The IP address from which the request originated.
-   *
-   * @returns {Object} - An object containing the generated access token, refresh token,
-   * and the expiry time of the access token.
-   */
-  async signIn(
-    body: LoginUserDto,
-    userAgent: string,
-    ip?: string,
-  ): Promise<{ accessToken: string; refreshToken: string; expiresIn: string }> {
-    const { token: refreshToken, expiresIn } =
-      this.tokenService.generateRefreshToken();
+  async register(
+    registerDto: CreateUserInput,
+    userAgent?: string,
+    ipAddress?: string,
+  ): Promise<LoginResponse> {
+    const existingUser = await this.userService.findByEmail(registerDto.email);
 
-    const user = await this.userService._validateCredentials(body);
+    if (existingUser) {
+      throw new ConflictException('This email is already in use.');
+    }
 
-    await this.userSessionRepository.create({
-      userId: user.id!,
-      refreshToken,
-      userAgent,
-      ipAddress: ip,
-      expiresAt: expiresIn,
+    const user = await this.userService.create({
+      ...registerDto,
     });
 
-    const access = await this.tokenService.generateAccessToken({
-      sub: user.id!,
-      email: user.email,
-      role: user.role,
+    await this.sendVerificationEmail(user.email);
+
+    const session = await this.userSessionService.create({
+      user: {
+        connect: { id: user.id },
+      },
+      userAgent: userAgent ?? null,
+      ipAddress: ipAddress ?? null,
+      refreshToken: '',
+      expiresAt: new Date(),
+    });
+
+    const tokens = await this.generateTokens(user, session.id);
+
+    await this.userSessionService.update(session.id, {
+      refreshToken: tokens.refreshToken,
     });
 
     return {
-      accessToken: access.token,
-      refreshToken,
-      expiresIn: access.expiresIn,
+      ...tokens,
+      user: this.userService.toUserType(user),
     };
   }
 
-  /**
-   * Creates a new user.
-   *
-   * @param {CreateUserDto} body - The user data to create, which may include optional availability.
-   *
-   * @returns {Promise<BaseUserDto>} - A promise that resolves to the newly created User's base data.
-   *
-   * @throws {BadRequestException} - Thrown if the User data is missing required fields.
-   * @throws {ConflictException} - Thrown if the email or phone is already registered.
-   */
-  async signup(
-    body: CreateUserDto,
-  ): Promise<ApiResponse<Omit<BaseUserDto, 'id' | 'password' | 'role'>>> {
-    return this.userService.create(body);
+  async login(
+    loginDto: LoginUserInput,
+    userAgent?: string,
+    ipAddress?: string,
+  ): Promise<LoginResponse> {
+    const { email, password } = loginDto;
+    this.checkRateLimit(email);
+
+    const user = await this.userService.findByEmail(email);
+
+    if (
+      !user ||
+      !(await this.hashingService.compare(password, user.password))
+    ) {
+      this.recordFailedAttempt(email);
+      throw new UnauthorizedException('Credenciais inválidas.');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Esta conta está desativada.');
+    }
+
+    this.loginAttempts.delete(email);
+
+    await this.userSessionService.deleteExpiredSessions();
+
+    const tempSession = await this.userSessionService.create({
+      user: {
+        connect: { id: user.id },
+      },
+      userAgent: userAgent ?? null,
+      ipAddress: ipAddress ?? null,
+      refreshToken: '',
+      expiresAt: new Date(),
+    });
+
+    if (!tempSession.id) {
+      throw new BadRequestException('Failed to create session');
+    }
+
+    const tokens = await this.generateTokens(user, tempSession.id);
+
+    await this.userSessionService.update(tempSession.id, {
+      refreshToken: tokens.refreshToken,
+    });
+
+    return {
+      ...tokens,
+      user: this.userService.toUserType(user),
+    };
+  }
+
+  async refreshToken(refreshToken: string): Promise<AuthTokens> {
+    try {
+      const payload = await this.tokenService.verifyToken(refreshToken);
+
+      const session = await this.userSessionService.findUnique({
+        where: { id: payload.sid },
+      });
+
+      if (!session || !session.isActive || !session.id) {
+        throw new UnauthorizedException('Invalid or expired session.');
+      }
+
+      const user = await this.userService.findById(session.userId);
+      if (!user || !user.isActive) {
+        throw new UnauthorizedException('Inactive user account');
+      }
+
+      await this.userSessionService.update(session.id, {
+        lastUsedAt: new Date(),
+      });
+      return this.generateTokens(user, session.id);
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token.');
+    }
   }
 
   /**
-   * Refreshes a user's session by generating a new access token and refresh token.
-   * Verifies the provided refresh token and ensures it has not expired.
+   * Verifies a user's email address using a verification token.
    *
-   * @param {string} refreshToken - The refresh token to be refreshed.
+   * @param {string} token - The verification token.
    *
-   * @returns {Object} - An object containing the new access token, refresh token,
-   * and the expiry time of the access token.
-   *
-   * @throws {UnauthorizedException} - Thrown if the refresh token is invalid or expired.
-   * @throws {UserNotFoundException} - Thrown if the user associated with the session does not exist.
+   * @returns {Promise<void>} - A promise that resolves when the email is verified.
    */
-  async refreshSession(
-    refreshToken: string,
-  ): Promise<{ accessToken: string; refreshToken: string; expiresIn: string }> {
-    const session = await this.userSessionRepository.findUnique(refreshToken);
-
-    if (!session || session.expiresAt < new Date()) {
-      throw new UnauthorizedException('Invalid or expired refresh token');
+  async verifyEmail(token: string): Promise<void> {
+    const tokenHash = this.hashToken(token);
+    const user = await this.userService.findByVerificationToken(tokenHash);
+    if (!user) {
+      throw new BadRequestException('Invalid or expired token.');
     }
 
-    const user = await this.userService.retrieveById(session.userId);
-    if (!user) throw new UserNotFoundException();
+    await this.userService.update(user.id, {
+      isActive: true,
+      verificationToken: '',
+    });
+  }
 
-    const newAccess = await this.tokenService.generateAccessToken({
-      sub: user.id!,
+  async forgotPassword(email: string): Promise<void> {
+    const user = await this.userService.findByEmail(email);
+    if (!user) {
+      return;
+    }
+
+    const resetToken = this.generateSecureToken();
+    const resetTokenHash = this.hashToken(resetToken);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    await this.userService.setPasswordResetToken(
+      user.id,
+      resetTokenHash,
+      expiresAt,
+    );
+    await this.sendPasswordResetEmail(user, resetToken);
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const tokenHash = this.hashToken(token);
+    const user = await this.userService.findByPasswordResetToken(tokenHash);
+
+    if (!user) {
+      throw new BadRequestException('Invalid or expired token.');
+    }
+
+    await this.userService.changePassword(user.id, {
+      currentPassword: '',
+      newPassword,
+    });
+  }
+
+  async logout(sessionId: string): Promise<void> {
+    await this.userSessionService.deleteByRefreshToken(sessionId);
+  }
+
+  private async generateTokens(
+    user: User,
+    sessionId: string,
+  ): Promise<AuthTokens> {
+    const payload = {
+      sub: user.id,
       email: user.email,
       role: user.role,
-    });
+      sid: sessionId,
+    };
+    const accessTokenExpiresIn = this.configService.get<string>(
+      'JWT_ACCESS_EXPIRES',
+      '15m',
+    );
+    const refreshTokenExpiresIn = this.configService.get<string>(
+      'JWT_REFRESH_EXPIRATION_TIME',
+      '7d',
+    );
 
-    const { token: newRefreshToken, expiresIn } =
-      this.tokenService.generateRefreshToken();
+    const [accessToken, refreshToken] = await Promise.all([
+      this.tokenService.generateAccessToken(payload, accessTokenExpiresIn),
+      this.tokenService.generateRefreshToken(refreshTokenExpiresIn),
+    ]);
 
-    await this.userSessionRepository.updateRefreshToken(
-      session.id,
-      newRefreshToken,
-      expiresIn,
+    const decodedToken = this.tokenService.decodeToken(accessToken.token);
+    const decodedRefreshToken = this.tokenService.decodeToken(
+      refreshToken.token,
     );
 
     return {
-      accessToken: newAccess.token,
-      refreshToken: newRefreshToken,
-      expiresIn: newAccess.expiresIn,
+      accessToken: accessToken.token,
+      refreshToken: refreshToken.token,
+      expiresIn: decodedToken?.exp ?? decodedRefreshToken?.exp ?? 0,
     };
   }
 
-  /**
-   * Revokes a user's session by deleting the associated refresh token.
-   *
-   * @param {string} refreshToken - The refresh token to be revoked.
-   *
-   * @throws {UnauthorizedException} - Thrown if the refresh token is invalid.
-   */
-  async revokeSession(refreshToken: string) {
-    await this.userSessionRepository.deleteByRefreshToken(refreshToken);
+  private checkRateLimit(key: string): void {
+    const attempts = this.loginAttempts.get(key);
+    if (attempts && attempts.count >= this.maxLoginAttempts) {
+      const timeSinceLockout = Date.now() - attempts.lastAttempt.getTime();
+      if (timeSinceLockout < this.lockoutDuration) {
+        const remainingTime = Math.ceil(
+          (this.lockoutDuration - timeSinceLockout) / 1000,
+        );
+        throw new BadRequestException(
+          `Too many login attempts. Please try again in ${remainingTime} seconds.`,
+        );
+      } else {
+        this.loginAttempts.delete(key);
+      }
+    }
   }
 
-  /**
-   * Sends a password reset email to the given email address if a User with that address exists.
-   *
-   * @param {string} email - The email address of the User to send the password reset email to.
-   *
-   * @returns {Promise<void>} - A promise that resolves when the password reset email has been sent.
-   *
-   * @throws {MissingRequiredPropertiesException} - Thrown if the email address is missing or undefined.
-   * @throws {UserNotFoundException} - Thrown if the User with the given email address does not exist in the database.
-   * @throws {InvalidCredentialsException} - Thrown if the given email address is invalid.
-   */
-  async sendPasswordResetEmail(email: string): Promise<string> {
-    if (!email) {
-      throw new MissingRequiredPropertiesException();
+  private recordFailedAttempt(key: string): void {
+    const attempts = this.loginAttempts.get(key) || {
+      count: 0,
+      lastAttempt: new Date(),
+    };
+    attempts.count++;
+    attempts.lastAttempt = new Date();
+    this.loginAttempts.set(key, attempts);
+  }
+
+  private generateSecureToken(): string {
+    return randomBytes(32).toString('hex');
+  }
+
+  private hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  async sendVerificationEmail(email: string): Promise<void> {
+    const user = await this.userService.findByEmail(email);
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
 
-    const retrievedCustomer = await this.userService.retrieveByEmail(email);
+    const verificationToken = this.generateSecureToken();
+    const tokenHash = this.hashToken(verificationToken);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    if (!retrievedCustomer) {
-      throw new UserNotFoundException('User not found');
-    }
+    await this.userService.setPasswordResetToken(user.id, tokenHash, expiresAt);
 
-    if (
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
-      retrievedCustomer.email != email
-    ) {
-      throw new InvalidCredentialsException();
-    }
-
-    const { token } = await this.tokenService.generateAccessToken(
-      {
-        sub: retrievedCustomer.id!,
-        email: retrievedCustomer.email,
-        role: retrievedCustomer.role,
-      },
-      '1h',
-    );
-
-    const resetLink = `http://localhost:3000/reset-password?token=${token}`;
-
-    await this.emailService.sendMail({
-      to: email,
-      subject: 'Password Reset',
-      html: `
-            <p>Hello ${retrievedCustomer.name},</p>
-            <p>You have requested to reset your password.</p>
-            <br />
-            <p>Please click the link below to reset your password:</p>
-            <p><a href="${resetLink}">Reset Password</a></p>
-            <br />
-            <p>This link will expire in 1 hour.</p>
-            <br />
-            <p>If you did not request this, please ignore this email.</p>
-        `,
+    await this.notificationService.sendMail({
+      to: user.email,
+      subject: 'Confirm your email address',
+      text: `Please click the link below to verify your email address: ${verificationToken}`,
     });
-
-    return 'Password reset email sent successfully';
   }
 
-  /**
-   * Resets the password for a User using the provided token and new password.
-   *
-   * @param {string} token - The token used to verify the User's identity.
-   * @param {string} newPassword - The new password to set for the User.
-   *
-   * @returns {Promise<string>} - A promise that resolves to a string indicating
-   * the success of the password reset operation.
-   *
-   * @throws {MissingRequiredPropertiesException} - Thrown if the token or new password is missing or undefined.
-   * @throws {UserNotFoundException} - Thrown if the User associated with the token does not exist in the database.
-   */
-  async resetPassword(token: string, newPassword: string): Promise<string> {
-    return await this.userService.resetPassword(token, newPassword);
-  }
-
-  /**
-   * Sends an email verification link to the given email address if a User with that address exists.
-   *
-   * @param {string} email - The email address of the User to send the verification email to.
-   *
-   * @returns {Promise<string>} - A promise that resolves to a string 'Verification email sent successfully' if the operation is successful.
-   *
-   * @throws {MissingRequiredPropertiesException} - Thrown if the email address is missing or undefined.
-   * @throws {UserNotFoundException} - Thrown if the User with the given email address does not exist in the database.
-   * @throws {InvalidCredentialsException} - Thrown if the given email address is invalid.
-   */
-  async sendVerificationEmail(email: string): Promise<string> {
-    if (!email) {
-      throw new MissingRequiredPropertiesException();
-    }
-
-    const retrievedCustomer = await this.userService.retrieveByEmail(email);
-
-    if (!retrievedCustomer) {
-      throw new UserNotFoundException('User not found');
-    }
-
-    if (
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
-      retrievedCustomer.email != email
-    ) {
-      throw new InvalidCredentialsException();
-    }
-
-    const { token } = await this.tokenService.generateAccessToken(
-      {
-        sub: retrievedCustomer.id!,
-        email: retrievedCustomer.email,
-        role: retrievedCustomer.role,
-      },
-      '1h',
-    );
-
-    const verificationLink = `http://localhost:3000/verify-email?token=${token}`;
-
-    await this.emailService.sendMail({
-      to: email,
-      subject: 'Email Verification',
-      html: `
-            <p>Hello ${retrievedCustomer.name},</p>
-            <p>You need to verify your email.</p>
-            <br />
-            <p>Please click the link below to verify your email:</p>
-            <p><a href="${verificationLink}">Verify Email</a></p>
-            <br />
-            <p>This link will expire in 1 hour.</p>
-            <br />
-            <p>If you did not request this, please ignore this email.</p>
-        `,
+  private async sendPasswordResetEmail(
+    user: User,
+    resetToken: string,
+  ): Promise<void> {
+    await this.notificationService.sendMail({
+      to: user.email,
+      subject: 'Password Reset Request',
+      text: `Please click the link below to reset your password: ${resetToken}`,
     });
-
-    return 'Verification email sent successfully';
-  }
-
-  /**
-   * Verifies a User by its email in the database.
-   *
-   * @param {string} email - The email of the User to verify.
-   *
-   * @returns {Promise<string>} - A promise that resolves to a string 'User verified successfully' if the operation is successful.
-   *
-   * @throws {MissingRequiredPropertiesException} - Thrown if the email is missing or undefined.
-   * @throws {UserNotFoundException} - Thrown if the User with the given email does not exist in the database.
-   */
-  async verifyEmail(email: string): Promise<string> {
-    return await this.userService.verifyUser(email);
   }
 }

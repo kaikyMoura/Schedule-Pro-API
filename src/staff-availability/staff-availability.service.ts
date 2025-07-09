@@ -4,15 +4,15 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Role } from 'prisma/app/generated/prisma/client';
+import {
+  Prisma,
+  Role,
+  StaffAvailability,
+} from 'prisma/app/generated/prisma/client';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
 import { UserNotFoundException } from 'src/common/exceptions/user-not-found.exception';
 import { UserService } from 'src/user/user.service';
-import { BaseStaffAvailabilityDto } from './dtos/base-staff-availability.dto';
-import { CreateStaffAvailabilityDto } from './dtos/create-staff-availability.dto';
-import { UpdateStaffAvailabilityDto } from './dtos/update-staff-availability.dto';
 import { StaffAvailabilityRepository } from './staff-availability.repository';
-import { ApiResponse } from 'src/common/types/api-resonse';
 
 @Injectable()
 export class StaffAvailabilityService {
@@ -20,24 +20,30 @@ export class StaffAvailabilityService {
     private readonly staffAvailabilityRepository: StaffAvailabilityRepository,
     private readonly userService: UserService,
   ) {}
-  private saltRounds = 10;
 
   /**
    * Retrieves all StaffAvailability objects.
    *
-   * @returns {Promise<BaseStaffAvailabilityDto[]>} - A promise that resolves to an array of
+   * @returns {Promise<StaffAvailability[]>} - A promise that resolves to an array of
    * StaffAvailability objects.
    */
-  async retrieveAll(): Promise<BaseStaffAvailabilityDto[]> {
-    const availabilities = await this.staffAvailabilityRepository.findMany();
+  async findMany(
+    args: Prisma.StaffAvailabilityFindManyArgs,
+  ): Promise<StaffAvailability[]> {
+    return await this.staffAvailabilityRepository.findMany(args);
+  }
 
-    return availabilities.map((staffAvailability) => ({
-      id: staffAvailability.id,
-      staffId: staffAvailability.staffId,
-      dayOfWeek: staffAvailability.dayOfWeek,
-      startTime: staffAvailability.startTime,
-      endTime: staffAvailability.endTime,
-    }));
+  /**
+   * Retrieves a StaffAvailability object by its unique identifier.
+   *
+   * @param {Prisma.StaffAvailabilityFindUniqueArgs} args - The arguments to find a StaffAvailability by.
+   *
+   * @returns {Promise<StaffAvailability | null>} - A promise that resolves to the StaffAvailability object if found, or null if not found.
+   */
+  async findById(id: string): Promise<StaffAvailability | null> {
+    return await this.staffAvailabilityRepository.findUnique({
+      where: { id: id },
+    });
   }
 
   /**
@@ -46,21 +52,19 @@ export class StaffAvailabilityService {
    * @param {string} staffId - The unique identifier of the staff member whose
    * StaffAvailability objects are to be retrieved.
    *
-   * @returns {Promise<BaseStaffAvailabilityDto[]>} - A promise that resolves to an array of
-   * BaseStaffAvailabilityDto objects containing details of the staff member's availability.
+   * @returns {Promise<StaffAvailability[]>} - A promise that resolves to an array of
+   * StaffAvailability objects containing details of the staff member's availability.
    *
    * @throws {MissingRequiredPropertiesException} - Thrown if the staffId is not provided.
    * @throws {UserNotFoundException} - Thrown if the user with the given staffId does not exist.
    * @throws {BadRequestException} - Thrown if the user is not a staff member.
    */
-  async retrieveByStaffId(
-    staffId: string,
-  ): Promise<BaseStaffAvailabilityDto[]> {
+  async findByStaffId(staffId: string): Promise<StaffAvailability[]> {
     if (!staffId) {
       throw new MissingRequiredPropertiesException();
     }
 
-    const retrivedUser = await this.userService.retrieveById(staffId);
+    const retrivedUser = await this.userService.findById(staffId);
 
     if (!retrivedUser) {
       throw new UserNotFoundException('User not found');
@@ -70,16 +74,11 @@ export class StaffAvailabilityService {
       throw new BadRequestException('User is not a staff member');
     }
 
-    const staffAvailabilites =
-      await this.staffAvailabilityRepository.findByStaffId(staffId);
+    const staffAvailabilites = await this.findMany({
+      where: { staffId: staffId },
+    });
 
-    return staffAvailabilites.map((staffAvailability) => ({
-      id: staffAvailability.id,
-      staffId: staffAvailability.staffId,
-      dayOfWeek: staffAvailability.dayOfWeek,
-      startTime: staffAvailability.startTime,
-      endTime: staffAvailability.endTime,
-    }));
+    return staffAvailabilites;
   }
 
   /**
@@ -99,25 +98,20 @@ export class StaffAvailabilityService {
    * @throws {HttpException} - Thrown if the staff member is already available on the given day and
    * time.
    */
-  async create(staffAvailability: CreateStaffAvailabilityDto): Promise<
-    ApiResponse<{
-      dayOfWeek: number;
-      startTime: string;
-      endTime: string;
-      staffAssociated: string;
-    }>
-  > {
+  async create(
+    staffAvailability: Prisma.StaffAvailabilityCreateInput,
+  ): Promise<StaffAvailability> {
     if (
       !staffAvailability.dayOfWeek ||
       !staffAvailability.startTime ||
       !staffAvailability.endTime ||
-      !staffAvailability.staffId
+      !staffAvailability.staff
     ) {
       throw new MissingRequiredPropertiesException();
     }
 
-    const staff = await this.userService.retrieveById(
-      staffAvailability.staffId,
+    const staff = await this.userService.findById(
+      staffAvailability.staff.connect!.id!,
     );
 
     if (!staff) {
@@ -129,34 +123,24 @@ export class StaffAvailabilityService {
     }
 
     if (
-      await this.staffAvailabilityRepository.isStaffAvailable(
-        staffAvailability.staffId,
-        staffAvailability.dayOfWeek,
-        staffAvailability.startTime,
-        staffAvailability.endTime,
-      )
+      await this.staffAvailabilityRepository.findFirst({
+        where: {
+          staffId: staffAvailability.staff.connect!.id!,
+          dayOfWeek: staffAvailability.dayOfWeek,
+          startTime: staffAvailability.startTime,
+          endTime: staffAvailability.endTime,
+        },
+      })
     ) {
       throw new ConflictException(
         'Staff member is already available on the given day and time',
       );
     }
 
-    await this.staffAvailabilityRepository.create({
-      staffId: staffAvailability.staffId,
-      dayOfWeek: staffAvailability.dayOfWeek,
-      startTime: staffAvailability.startTime,
-      endTime: staffAvailability.endTime,
-    });
+    const createdStaffAvailability =
+      await this.staffAvailabilityRepository.create(staffAvailability);
 
-    return {
-      message: 'Availability created successfully',
-      data: {
-        dayOfWeek: staffAvailability.dayOfWeek,
-        startTime: staffAvailability.startTime,
-        endTime: staffAvailability.endTime,
-        staffAssociated: staff.name,
-      },
-    };
+    return createdStaffAvailability;
   }
 
   /**
@@ -169,7 +153,7 @@ export class StaffAvailabilityService {
    * @throws {NotFoundException} - Thrown if the StaffAvailability with the given id does not exist in the database.
    */
   async delete(id: string): Promise<void> {
-    if (!(await this.staffAvailabilityRepository.findUnique(id))) {
+    if (!(await this.findById(id))) {
       throw new NotFoundException('Availability not found');
     }
 
@@ -180,7 +164,7 @@ export class StaffAvailabilityService {
    * Updates a StaffAvailability in the database.
    *
    * @param {string} id - The unique identifier of the StaffAvailability to update.
-   * @param {UpdateStaffAvailabilityDto} staffAvailability - The data to update the StaffAvailability with.
+   * @param {Prisma.StaffAvailabilityUpdateInput} staffAvailability - The data to update the StaffAvailability with.
    *
    * @returns {Promise<void>} - A promise that resolves when the StaffAvailability has been updated.
    *
@@ -188,9 +172,9 @@ export class StaffAvailabilityService {
    */
   async update(
     id: string,
-    staffAvailability: UpdateStaffAvailabilityDto,
+    staffAvailability: Prisma.StaffAvailabilityUpdateInput,
   ): Promise<void> {
-    if (!(await this.staffAvailabilityRepository.findUnique(id))) {
+    if (!(await this.findById(id))) {
       throw new NotFoundException('Availability not found');
     }
 

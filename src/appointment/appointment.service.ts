@@ -3,51 +3,65 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Role, Status } from 'prisma/app/generated/prisma/client';
+import {
+  Appointment,
+  Prisma,
+  Role,
+  Status,
+  User,
+} from 'prisma/app/generated/prisma/client';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
-import { ApiResponse } from 'src/common/types/api-resonse';
-import { MailService } from 'src/mail/mail.service';
+import { NotificationService } from 'src/notification/notification.service';
 import { ServiceItemService } from 'src/serviceItem/service-item.service';
-import { BaseUserDto } from 'src/user/dtos/base-user.dto';
 import { UserService } from 'src/user/user.service';
 import { AppointmentRepository } from './appointment.repository';
-import { AppointmentResponseDto } from './dtos/appointment-response.dto';
-import { BaseAppointmentDto } from './dtos/base-appointment.dto';
-import { CreateAppointmentDto } from './dtos/create-appointment.dto';
-import { UpdateAppointmentDto } from './dtos/update-appointment.dto';
+import { AppointmentType } from './type/appointment.type';
 
 @Injectable()
 export class AppointmentService {
   constructor(
     private readonly appointmentRepository: AppointmentRepository,
     private readonly userService: UserService,
-    private readonly mailService: MailService,
+    private readonly notificationService: NotificationService,
     private readonly serviceItemService: ServiceItemService,
   ) {}
 
   /**
+   * Converts an Appointment object to an AppointmentType object.
+   *
+   * @param {Appointment} appointment - The Appointment object to convert.
+   *
+   * @returns {AppointmentType} - The converted AppointmentType object.
+   */
+  toAppointmentType(appointment: Appointment): AppointmentType {
+    return {
+      scheduledDate: appointment.scheduledDate,
+      scheduledTime: appointment.scheduledTime,
+      startTime: appointment.startTime,
+      endTime: appointment.endTime,
+      timezone: appointment.timezone,
+      status: appointment.status,
+      type: appointment.type,
+      notes: appointment.notes ?? '',
+      price: Number(appointment.price),
+      currency: appointment.currency,
+      discount: Number(appointment.discount),
+      finalPrice: Number(appointment.finalPrice),
+    };
+  }
+
+  /**
    * Retrieves all Appointment objects from the database.
    *
-   * @returns {Promise<ApiResponse<BaseAppointmentDto[], Error>>} - A promise that resolves to an ApiResponse
-   * containing an array of BaseAppointmentDto objects with appointment details, or an error if the operation fails.
+   * @returns {Promise<Appointment[]>} - A promise that resolves to an array of Appointment objects.
    *
    * @example
-   * const allAppointments = await appointmentService.retrieveAll();
+   * const allAppointments = await appointmentService.findMany();
    */
-  async retrieveAll(): Promise<BaseAppointmentDto[]> {
-    const appointments = await this.appointmentRepository.findAll();
-
-    return appointments.map((appointment) => ({
-      id: appointment.id,
-      date: appointment.date,
-      time: appointment.time,
-      status: appointment.status,
-      price: appointment.price,
-      notes: appointment.notes!,
-      customerId: appointment.customerId,
-      staffId: appointment.staffId!,
-      serviceId: appointment.serviceId,
-    }));
+  async findMany(
+    args?: Prisma.AppointmentFindManyArgs,
+  ): Promise<Appointment[]> {
+    return await this.appointmentRepository.findMany(args);
   }
 
   /**
@@ -55,7 +69,7 @@ export class AppointmentService {
    *
    * @param {string} customerId - The unique identifier of the customer whose appointments are to be retrieved.
    *
-   * @returns {Promise<BaseAppointmentDto[]>} - A promise that resolves to an array of BaseAppointmentDto objects
+   * @returns {Promise<Appointment[]>} - A promise that resolves to an array of Appointment objects
    * containing details of the appointments associated with the specified customer.
    *
    * @example
@@ -63,29 +77,18 @@ export class AppointmentService {
    *
    * @throws {BadRequestException} - Thrown if the user is not a customer.
    */
-
-  async retrieveAllByCustomerId(
-    customerId: string,
-  ): Promise<BaseAppointmentDto[]> {
-    const user = await this.userService.retrieveById(customerId);
+  async findManyByCustomerId(customerId: string): Promise<Appointment[]> {
+    const user = await this.userService.findById(customerId);
 
     if (user.role !== Role.CUSTOMER) {
       throw new BadRequestException('User is not a customer');
     }
 
-    const appointments =
-      await this.appointmentRepository.findAllCustomerAppointments(customerId);
-
-    return appointments.map((appointment) => ({
-      date: appointment.date,
-      time: appointment.time,
-      status: appointment.status,
-      price: appointment.price,
-      notes: appointment.notes!,
-      customerId: appointment.customerId,
-      staffId: appointment.staffId!,
-      serviceId: appointment.serviceId,
-    }));
+    return await this.findMany({
+      where: {
+        customerId,
+      },
+    });
   }
 
   /**
@@ -93,7 +96,7 @@ export class AppointmentService {
    *
    * @param {string} staffId - The unique identifier of the staff member whose appointments are to be retrieved.
    *
-   * @returns {Promise<BaseAppointmentDto[]>} - A promise that resolves to an array of BaseAppointmentDto objects
+   * @returns {Promise<Appointment[]>} - A promise that resolves to an array of Appointment objects
    * containing details of the appointments associated with the specified staff member.
    *
    * @example
@@ -101,26 +104,18 @@ export class AppointmentService {
    *
    * @throws {BadRequestException} - Thrown if the user is not a staff member.
    */
-  async retrieveAllByStaffId(staffId: string): Promise<BaseAppointmentDto[]> {
-    const user = await this.userService.retrieveById(staffId);
+  async findManyByStaffId(staffId: string): Promise<Appointment[]> {
+    const user = await this.userService.findById(staffId);
 
     if (user.role !== Role.STAFF) {
       throw new BadRequestException('User is not a staff member');
     }
 
-    const appointments =
-      await this.appointmentRepository.findAllStaffAppointments(staffId);
-
-    return appointments.map((appointment) => ({
-      date: appointment.date,
-      time: appointment.time,
-      status: appointment.status,
-      price: appointment.price,
-      notes: appointment.notes!,
-      customerId: appointment.customerId,
-      staffId: appointment.staffId!,
-      serviceId: appointment.serviceId,
-    }));
+    return await this.findMany({
+      where: {
+        staffId,
+      },
+    });
   }
 
   /**
@@ -128,43 +123,28 @@ export class AppointmentService {
    *
    * @param {string} appointmentId - The id of the Appointment to retrieve.
    *
-   * @returns {Promise<ResponseModel<Appointment, Error>>} - A promise that resolves to a ResponseModel
-   * with the Appointment object with the given id, or an error if the operation fails.
+   * @returns {Promise<Appointment>} - A promise that resolves to the Appointment object with the given id.
    *
    * @example
-   * const appointment = await appointmentService.retrieveById('1')
+   * const appointment = await appointmentService.findById('1')
    *
    * @throws {MissingRequiredPropertiesException} - Thrown if the appointmentId is missing or undefined.
    * @throws {NotFoundException} - Thrown if the Appointment with the given id does not exist in the database.
    */
-  async retrieveById(
-    appointmentId: string,
-  ): Promise<ApiResponse<BaseAppointmentDto>> {
+  async findById(appointmentId: string): Promise<Appointment> {
     if (!appointmentId) {
       throw new MissingRequiredPropertiesException();
     }
 
-    const retrivedAppointment =
-      await this.appointmentRepository.findUnique(appointmentId);
+    const retrivedAppointment = await this.appointmentRepository.findUnique({
+      where: { id: appointmentId },
+    });
 
     if (!retrivedAppointment) {
       throw new NotFoundException('Appointment not found');
     }
 
-    return {
-      message: 'Appointment retrieved successfully',
-      data: {
-        id: retrivedAppointment.id,
-        date: retrivedAppointment.date,
-        time: retrivedAppointment.time,
-        status: retrivedAppointment.status,
-        price: retrivedAppointment.price,
-        notes: retrivedAppointment.notes!,
-        customerId: retrivedAppointment.customerId,
-        serviceId: retrivedAppointment.serviceId,
-        staffId: retrivedAppointment.staffId!,
-      },
-    };
+    return retrivedAppointment;
   }
 
   /**
@@ -191,24 +171,23 @@ export class AppointmentService {
    * @throws {BadRequestException} - Thrown if no staff is available at the given time.
    */
   async create(
-    appointment: CreateAppointmentDto,
-  ): Promise<ApiResponse<AppointmentResponseDto>> {
+    appointment: Prisma.AppointmentCreateInput,
+  ): Promise<Appointment> {
     if (
-      !appointment.customerId ||
-      !appointment.serviceId ||
-      !appointment.staffId ||
-      !appointment.date ||
-      !appointment.time
+      !appointment.customer ||
+      !appointment.service ||
+      !appointment.staff ||
+      !appointment.scheduledDate ||
+      !appointment.scheduledTime
     ) {
       throw new MissingRequiredPropertiesException();
     }
 
     let staffName = '';
-    let selectedStaffId = appointment.staffId;
+    let selectedStaffId = appointment.staff?.connect?.id;
 
     if (selectedStaffId && selectedStaffId !== 'any') {
-      const staffResponse =
-        await this.userService.retrieveById(selectedStaffId);
+      const staffResponse = await this.userService.findById(selectedStaffId);
 
       if (!staffResponse) {
         throw new NotFoundException('Staff not found');
@@ -220,27 +199,29 @@ export class AppointmentService {
         throw new BadRequestException('User is not a staff member');
       }
 
-      staffName = staff.name;
+      staffName = `${staff.firstName} ${staff.lastName}`;
     } else {
-      const availableStaff = await this.findAvailableStaff(
-        appointment.date,
-        appointment.time,
-      );
+      const availableStaff = await this.findAvailableStaff({
+        scheduledDate: appointment.scheduledDate,
+        scheduledTime: appointment.scheduledTime,
+      });
 
       if (!availableStaff) {
         throw new BadRequestException('No staff available at this time.');
       }
 
       selectedStaffId = availableStaff.id!;
-      staffName = availableStaff.name;
+      staffName = `${availableStaff?.firstName} ${availableStaff?.lastName}`;
     }
 
     const newAppointment = await this.appointmentRepository.create({
       ...appointment,
-      staffId: selectedStaffId,
+      staff: {
+        connect: { id: selectedStaffId },
+      },
     });
 
-    const service = await this.serviceItemService.retrieveById(
+    const service = await this.serviceItemService.findById(
       newAppointment.serviceId,
     );
 
@@ -248,28 +229,17 @@ export class AppointmentService {
       throw new NotFoundException('Service not found');
     }
 
-    await this.mailService.sendMail({
-      to: appointment.customerId,
+    await this.notificationService.sendMail({
+      to: appointment.customer.connect!.email!,
       from: 'Schedule Pro',
       subject: 'New Appointment',
       html: `<h1>New Appointment</h1>
       <p>You have a new appointment with ${staffName}</p>
-      <p>Service: ${service.type}</p>
-      <p>Date: ${newAppointment.date.toISOString()}</p><p>Time: ${newAppointment.time}</p>`,
+      <p>Service: ${service.name}</p>
+      <p>Date: ${newAppointment.scheduledDate.toISOString()}</p><p>Time: ${newAppointment.scheduledTime}</p>`,
     });
 
-    return {
-      message: 'Appointment created successfully',
-      data: {
-        notes: newAppointment.notes!,
-        date: newAppointment.date,
-        time: newAppointment.time,
-        status: newAppointment.status,
-        price: newAppointment.price,
-        staffName,
-        serviceName: newAppointment.serviceId,
-      },
-    };
+    return newAppointment;
   }
 
   /**
@@ -282,7 +252,7 @@ export class AppointmentService {
    * @throws {NotFoundException} - Thrown if the Appointment with the given id does not exist in the database.
    */
   async delete(id: string): Promise<void> {
-    if (!(await this.appointmentRepository.findUnique(id))) {
+    if (!(await this.findById(id))) {
       throw new NotFoundException('Appointment not found');
     }
 
@@ -301,13 +271,13 @@ export class AppointmentService {
    */
   async update(
     id: string,
-    updateAppointmentDto: UpdateAppointmentDto,
+    updateAppointment: Prisma.AppointmentUpdateInput,
   ): Promise<void> {
-    if (!(await this.appointmentRepository.findUnique(id))) {
+    if (!(await this.findById(id))) {
       throw new NotFoundException('Appointment not found');
     }
 
-    await this.appointmentRepository.update(id, updateAppointmentDto);
+    await this.appointmentRepository.update(id, updateAppointment);
   }
 
   /**
@@ -328,32 +298,54 @@ export class AppointmentService {
   }
 
   /**
-   * Finds the first available staff member for the given date and time.
+   * Finds a staff member who is available at the given time.
    *
-   * @param {string} date - The date of the appointment.
-   * @param {string} time - The time of the appointment.
+   * @param {Prisma.AppointmentWhereInput} where - The where clause to filter the appointments.
    *
-   * @returns {Promise<Omit<BaseUserDto, 'password'> | null>} - A promise that resolves to the first available staff member, or `null` if no staff member is available.
+   * @returns {Promise<User | null>} - A promise that resolves to the User object if a staff member is available, or null if no staff member is available.
    */
   private async findAvailableStaff(
-    date: Date,
-    time: string,
-  ): Promise<Omit<BaseUserDto, 'password'> | null> {
-    const allStaff = await this.userService.retrieveAll();
+    where: Prisma.AppointmentWhereInput,
+  ): Promise<User | null> {
+    const availableStaff = await this.userService.findManyByRole(Role.STAFF);
 
-    if (!allStaff) {
+    if (!availableStaff) {
       return null;
     }
 
-    for (const staff of allStaff) {
-      const isBooked = await this.appointmentRepository.findFirst(
-        staff.id!,
-        date,
-        time,
-      );
-      if (!isBooked) return staff;
+    for (const staff of availableStaff) {
+      const isBooked = await this.appointmentRepository.findFirst({
+        where: {
+          staffId: staff.id,
+          scheduledDate: where.scheduledDate,
+          scheduledTime: where.scheduledTime,
+        },
+      });
+      if (!isBooked) {
+        return staff;
+      }
     }
 
     return null;
+  }
+
+  async deactivate(id: string): Promise<void> {
+    const appointment = await this.findById(id);
+    if (!appointment) {
+      throw new NotFoundException('Appointment not found');
+    }
+
+    const customer = await this.userService.findById(appointment.customerId);
+    const staff = await this.userService.findById(appointment.staffId!);
+
+    if (!customer || !staff) {
+      throw new NotFoundException('Customer or staff not found');
+    }
+
+    await this.update(id, {
+      status: Status.CANCELLED,
+      notes: 'Customer cancelled the appointment',
+      deletedAt: new Date(),
+    });
   }
 }

@@ -1,12 +1,13 @@
 generator client {
   provider = "prisma-client-js"
   output   = "app/generated/prisma/client"
+  previewFeatures = ["fullTextSearchPostgres", "views", "multiSchema"]
 }
 
 datasource db {
   provider = "postgres"
   url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  schemas  = ["public", "audit"]
 }
 
 enum Status {
@@ -14,112 +15,457 @@ enum Status {
   CONFIRMED
   COMPLETED
   PENDING
+  RESCHEDULED
+  NO_SHOW
+
+  @@schema("public")
 }
 
 enum Role {
   ADMIN
   STAFF
   CUSTOMER
+  MANAGER
+
+  @@schema("public")
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+  CANCELLED
+
+  @@schema("public")
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  PAYPAL
+  PIX
+
+  @@schema("public")
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  PUSH
+  IN_APP
+
+  @@schema("public")
+}
+
+enum NotificationType {
+  APPOINTMENT_CONFIRMED
+  APPOINTMENT_CANCELLED
+  REMINDER
+  CUSTOM
+
+  @@schema("public")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+
+  @@schema("public")
+}
+
+enum AuditAction {
+  INSERT
+  UPDATE
+  DELETE
+
+  @@schema("audit")
+}
+
+enum DayOfWeek {
+   SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+
+  @@schema("public")
+}
+
+enum AppointmentType {
+  REGULAR
+  FOLLOW_UP
+  CONSULTATION
+  EMERGENCY
+
+  @@schema("public")
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  phone     String   @unique
-  photo     String?
-  role      Role     @default(CUSTOMER)
+  id String @id @default(uuid()) @db.Uuid
+  email String @unique @db.VarChar(255)
+  password String @db.VarChar(255)
+  phone String @unique @db.VarChar(20)
+  role Role @default(CUSTOMER)
 
-  verifiedAt DateTime? @map("verified_at")  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Profile information
+  firstName String @map("first_name") @db.VarChar(100)
+  lastName String @map("last_name") @db.VarChar(100)
+  avatar String? @db.Text
+  dateOfBirth DateTime? @map("date_of_birth") @db.Date
+  gender Gender?
+  address String? @db.Text
+  city String? @db.VarChar(100)
+  state String? @db.VarChar(100)
+  zipCode String? @map("zip_code") @db.VarChar(20)
+  country String? @db.VarChar(100)
 
-  appointments Appointment[] @relation("CustomerAppointments")
+  // Account status
+  isActive Boolean @default(true) @map("is_active")
+  isVerified Boolean @default(false) @map("is_verified")
+  verifiedAt DateTime? @map("verified_at") @db.Timestamptz
+  lastLoginAt DateTime? @map("last_login_at") @db.Timestamptz
 
-  // to user with Role STAFF
-  availability  StaffAvailability[]
-  staffServices StaffService[]
+  // Preferences
+  timezone String @default("UTC") @db.VarChar(50)
+  language String @default("en") @db.VarChar(10)
+  currency String @default("USD") @db.VarChar(3)
 
+  // Notification preferences
+  emailNotifications Boolean @default(true) @map("email_notifications")
+  smsNotifications Boolean @default(false) @map("sms_notifications")
+  pushNotifications Boolean @default(true) @map("push_notifications")
+
+  passwordResetToken           String?   @unique @map("password_reset_token")
+  passwordResetTokenExpiresAt  DateTime? @map("password_reset_token_expires_at") @db.Timestamptz
+
+  verificationToken            String?   @unique @map("verification_token")
+  verificationTokenExpiresAt   DateTime? @map("verification_token_expires_at") @db.Timestamptz
+
+  // Audit fields
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  // Relationships
+  customerAppointments Appointment[] @relation("CustomerAppointments")
   staffAppointments Appointment[] @relation("StaffAppointments")
-
+  availability StaffAvailability[]
+  staffServices StaffService[]
   sessions UserSession[] @relation("UserSessions")
+  notifications Notification[]
+  reviews Review[] @relation("CustomerReviews")
+  receivedReviews Review[] @relation("StaffReviews")
+  payments Payment[]
+
+  @@schema("public")
+  @@map("users")
+  @@index([email], name: "idx_user_email")
+  @@index([phone], name: "idx_user_phone")
+  @@index([role], name: "idx_user_role")
+  @@index([isActive], name: "idx_user_is_active")
+  @@index([createdAt], name: "idx_user_created_at")
+  @@index([deletedAt], name: "idx_user_deleted_at")
 }
 
 model UserSession {
-  id           String   @id @default(uuid())
-  userId       String
-  refreshToken String
-  userAgent    String?
-  ipAddress    String?
-  createdAt    DateTime @default(now())
-  expiresAt    DateTime
-  user         User     @relation("UserSessions", fields: [userId], references: [id], onDelete: Cascade)
+  id String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  refreshToken String @map("refresh_token") @db.Text
+  userAgent String? @map("user_agent") @db.Text
+  ipAddress String? @map("ip_address") @db.Inet
+  isActive Boolean @default(true) @map("is_active")
 
-  @@index([userId])
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  expiresAt DateTime @map("expires_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz
+
+  user User @relation("UserSessions", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@schema("public")
+  @@map("user_sessions")
+  @@index([userId], name: "idx_usersession_user_id")
+  @@index([refreshToken], name: "idx_usersession_refresh_token")
+  @@index([expiresAt], name: "idx_usersession_expires_at")
+  @@index([isActive], name: "idx_usersession_is_active")
+  @@index([lastUsedAt], name: "idx_usersession_last_used_at")
+}
+
+model Notification {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  appointmentId String? @map("appointment_id") @db.Uuid
+
+  title String @db.VarChar(255)
+  message String @db.Text
+  type NotificationType
+
+  channel NotificationChannel
+  isRead Boolean @default(false) @map("is_read")
+  readAt DateTime? @map("read_at") @db.Timestamptz
+
+  scheduledFor DateTime? @map("scheduled_for") @db.Timestamptz
+  sentAt DateTime? @map("sent_at") @db.Timestamptz
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id])
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+
+  @@schema("public")
+  @@map("notifications")
+  @@index([userId], name: "idx_notification_user_id")
+  @@index([appointmentId], name: "idx_notification_appointment_id")
+  @@index([isRead], name: "idx_notification_is_read")
+  @@index([scheduledFor], name: "idx_notification_scheduled_for")
+  @@index([type], name: "idx_notification_type")
+}
+
+model AuditLog {
+  id String @id @default(uuid()) @db.Uuid
+  tableName String @map("table_name") @db.VarChar(100)
+  recordId String @map("record_id") @db.Uuid
+  action AuditAction
+  oldValues Json? @map("old_values") @db.JsonB
+  newValues Json? @map("new_values") @db.JsonB
+  userId String? @map("user_id") @db.Uuid
+  ipAddress String? @map("ip_address") @db.Inet
+  userAgent String? @map("user_agent") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("audit_logs")
+  @@schema("audit")
+  @@index([tableName], name: "idx_auditlog_table_name")
+  @@index([recordId], name: "idx_auditlog_record_id")
+  @@index([action], name: "idx_auditlog_action")
+  @@index([userId], name: "idx_auditlog_user_id")
+  @@index([createdAt], name: "idx_auditlog_created_at")
+}
+
+model Payment {
+  id String @id @default(uuid()) @db.Uuid
+  appointmentId String? @map("appointment_id") @db.Uuid
+  userId String @map("user_id") @db.Uuid
+
+  amount Decimal @db.Decimal(10, 2)
+  currency String @default("USD") @db.VarChar(3)
+  status PaymentStatus @default(PENDING)
+  paymentMethod PaymentMethod @map("payment_method")
+
+  stripePaymentId String? @map("stripe_payment_id") @db.VarChar(255)
+  transactionId String? @map("transaction_id") @db.VarChar(255)
+  paidAt DateTime? @map("paid_at") @db.Timestamptz
+  refundedAt DateTime? @map("refunded_at") @db.Timestamptz
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@schema("public")
+  @@map("payments")
+  @@index([appointmentId], name: "idx_payment_appointment_id")
+  @@index([userId], name: "idx_payment_user_id")
+  @@index([status], name: "idx_payment_status")
+  @@index([createdAt], name: "idx_payment_created_at")
+}
+
+model Review {
+  id String @id @default(uuid()) @db.Uuid
+  appointmentId String @map("appointment_id") @db.Uuid
+  customerId String @map("customer_id") @db.Uuid
+  staffId String? @map("staff_id") @db.Uuid
+  serviceId String @map("service_id") @db.Uuid
+
+  rating Int @db.SmallInt
+  title String? @db.VarChar(255)
+  comment String? @db.Text
+
+  isApproved Boolean @default(false) @map("is_approved")
+  isPublic Boolean @default(true) @map("is_public")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+  customer User @relation("CustomerReviews", fields: [customerId], references: [id])
+  staff User? @relation("StaffReviews", fields: [staffId], references: [id])
+  service ServiceItem @relation(fields: [serviceId], references: [id])
+
+  @@schema("public")
+  @@map("reviews")
+  @@index([appointmentId], name: "idx_review_appointment_id")
+  @@index([customerId], name: "idx_review_customer_id")
+  @@index([staffId], name: "idx_review_staff_id")
+  @@index([serviceId], name: "idx_review_service_id")
+  @@index([rating], name: "idx_review_rating")
+  @@index([isApproved], name: "idx_review_is_approved")
+  @@unique([appointmentId, customerId], name: "uniq_review_appointment_customer")
 }
 
 model Appointment {
-  id     String   @id @default(uuid())
-  notes  String?
-  date   DateTime
-  time   String
-  status Status   @default(PENDING)
-  price  Float
+  id String @id @default(uuid()) @db.Uuid
 
-  // to users with Role CUSTOMER
-  customerId String
-  customer   User   @relation("CustomerAppointments", fields: [customerId], references: [id], onDelete: Cascade)
+  // Scheduling
+  scheduledDate DateTime @map("scheduled_date") @db.Date
+  scheduledTime String @map("scheduled_time") @db.VarChar(5)
+  startTime DateTime @map("start_time") @db.Timestamptz
+  endTime DateTime @map("end_time") @db.Timestamptz
+  timezone String @default("UTC") @db.VarChar(50)
 
-  // to users with Role STAFF
-  staffId String?
-  staff   User?   @relation("StaffAppointments", fields: [staffId], references: [id], onDelete: SetNull)
+  // Status and type
+  status Status @default(PENDING)
+  type AppointmentType @default(REGULAR)
 
-  // to services
-  serviceId String
-  service   ServiceItem @relation(fields: [serviceId], references: [id])
+  // Details
+  notes String? @db.Text
+  internalNotes String? @map("internal_notes") @db.Text
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Pricing
+  price Decimal @db.Decimal(10, 2)
+  currency String @default("USD") @db.VarChar(3)
+  discount Decimal @default(0) @db.Decimal(10, 2)
+  finalPrice Decimal @map("final_price") @db.Decimal(10, 2)
+
+  // Relationships
+  customerId String @map("customer_id") @db.Uuid
+  customer User @relation("CustomerAppointments", fields: [customerId], references: [id], onDelete: Cascade)
+  staffId String? @map("staff_id") @db.Uuid
+  staff User? @relation("StaffAppointments", fields: [staffId], references: [id], onDelete: SetNull)
+  serviceId String @map("service_id") @db.Uuid
+  service ServiceItem @relation(fields: [serviceId], references: [id])
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  // Additional relationships
+  payments Payment[]
+  notifications Notification[]
+  reviews Review[]
+
+  @@schema("public")
+  @@map("appointments")
+  @@index([customerId], name: "idx_appointment_customer_id")
+  @@index([staffId], name: "idx_appointment_staff_id")
+  @@index([serviceId], name: "idx_appointment_service_id")
+  @@index([status], name: "idx_appointment_status")
+  @@index([scheduledDate], name: "idx_appointment_scheduled_date")
+  @@index([startTime], name: "idx_appointment_start_time")
+  @@index([createdAt], name: "idx_appointment_created_at")
+  @@unique([staffId, startTime], name: "uniq_appointment_staff_starttime")
 }
 
 model ServiceItem {
-  id       String @id @default(uuid())
-  type     String
-  price    Float
-  duration Int
+  id String @id @default(uuid()) @db.Uuid
+  name String @db.VarChar(255)
+  description String? @db.Text
+  category String @db.VarChar(100)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Pricing
+  basePrice Decimal @map("base_price") @db.Decimal(10, 2)
+  currency String @default("USD") @db.VarChar(3)
 
-  appointments  Appointment[]
+  // Duration in minutes
+  durationMinutes Int @db.Integer
+  bufferMinutes Int @default(0) @map("buffer_time") @db.Integer
+
+  // Availability
+  isActive Boolean @default(true) @map("is_active")
+  isOnline Boolean @default(false) @map("is_online")
+  maxAdvanceBooking Int? @map("max_advance_booking")
+  minAdvanceBooking Int? @map("min_advance_booking")
+
+  // Metadata
+  color String? @db.VarChar(7)
+  icon String? @db.VarChar(50)
+  tags String[] @db.VarChar(50)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  appointments Appointment[]
   staffServices StaffService[]
+  reviews Review[]
+
+  @@schema("public")
+  @@map("service_items")
+  @@index([category], name: "idx_serviceitem_category")
+  @@index([isActive], name: "idx_serviceitem_is_active")
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, name: "idx_serviceitem_name_trgm")
 }
 
 model StaffAvailability {
-  id      String @id @default(uuid())
-  staffId String
+  id String @id @default(uuid()) @db.Uuid
+  staffId String @map("staff_id") @db.Uuid
 
-  dayOfWeek Int
-  startTime String
-  endTime   String
+  // Recurring availability
+  dayOfWeek DayOfWeek @map("day_of_week")
+  startTime String @map("start_time") @db.VarChar(5)
+  endTime String @map("end_time") @db.VarChar(5)
 
-  createdAt DateTime @default(now())
-  staff     User     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  // Override for specific dates
+  specificDate DateTime? @map("specific_date") @db.Date
+  isAvailable Boolean @default(true) @map("is_available")
 
-  @@index([staffId])
+  // Break times
+  breakStartTime String? @map("break_start_time") @db.VarChar(5)
+  breakEndTime String? @map("break_end_time") @db.VarChar(5)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  staff User @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@schema("public")
+  @@map("staff_availability")
+  @@index([staffId], name: "idx_staffavailability_staff_id")
+  @@index([dayOfWeek], name: "idx_staffavailability_day_of_week")
+  @@index([specificDate], name: "idx_staffavailability_specific_date")
+  @@unique([staffId, dayOfWeek, startTime, endTime, specificDate], name: "uniq_staffavailability_staff_day_time_date")
 }
 
 model StaffService {
-  id        String      @id @default(uuid())
-  staff     User        @relation(fields: [staffId], references: [id])
-  staffId   String
-  service   ServiceItem @relation(fields: [serviceId], references: [id])
-  serviceId String
+  id String @id @default(uuid()) @db.Uuid
+  staffId String @map("staff_id") @db.Uuid
+  serviceId String @map("service_id") @db.Uuid
 
-  customPrice Float?
-  active      Boolean @default(true)
-  createdAt   DateTime @default(now())
+  // Custom pricing for this staff member
+  customPrice Decimal? @map("custom_price") @db.Decimal(10, 2)
+  customDuration Int? @map("custom_duration")
 
-  @@unique([staffId, serviceId])
+  // Status
+  isActive Boolean @default(true) @map("is_active")
+  isPreferred Boolean @default(false) @map("is_preferred")
+
+  // Skill level
+  skillLevel Int @default(1) @map("skill_level") @db.SmallInt
+  experience Int? @db.SmallInt
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  staff User @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  service ServiceItem @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@schema("public")
+  @@map("staff_services")
+  @@unique([staffId, serviceId], name: "uniq_staffservice_staff_service")
+  @@index([staffId], name: "idx_staffservice_staff_id")
+  @@index([serviceId], name: "idx_staffservice_service_id")
+  @@index([isActive], name: "idx_staffservice_is_active")
+  @@index([isPreferred], name: "idx_staffservice_is_preferred")
 }

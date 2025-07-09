@@ -5,228 +5,175 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import bcrypt, { compare, hash } from 'bcryptjs';
-import { Role } from 'prisma/app/generated/prisma/client';
+import { compare } from 'bcrypt';
+import { Prisma, Role, User } from 'prisma/app/generated/prisma/client';
 import { InvalidCredentialsException } from 'src/common/exceptions/invalid-credentials.exception';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
 import { UserNotFoundException } from 'src/common/exceptions/user-not-found.exception';
-import { ChangePasswordDto } from 'src/user/dtos/change-password-user.schema';
-import { BaseUserDto } from './dtos/base-user.dto';
-import { CreateUserDto } from './dtos/create-user.dto';
-import { LoginUserDto } from './dtos/login-user.dto';
-import { UpdateUserDto } from './dtos/update-user.dto';
+import { HashingService } from 'src/hashing/hashing.service';
+import { ChangePasswordInput } from './input/change-password.input';
+import { CreateUserInput } from './input/create-user.input';
+import { LoginUserInput } from './input/login-user.input';
+import { UpdateUserInput } from './input/update-user.input';
+import { UserConnection } from './type/user-connection.type';
+import { UserType } from './type/user.type';
 import { UserRepository } from './user.repository';
-import { ApiResponse } from 'src/common/types/api-resonse';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly userRepository: UserRepository) {}
-  private saltRounds = 10;
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly hashingService: HashingService,
+  ) {}
 
   /**
-   * Retrieves all User objects from the database.
+   * Converts a User to a UserType.
    *
-   * @returns {Promise<Omit<BaseUserDto, 'password'>[]>} - A promise that resolves to an array of User objects
-   * excluding the password field.
+   * @param {User} user - The User to convert.
    *
-   * @example
-   * const users = await userService.retrieveAll();
+   * @returns {UserType} - The converted UserType.
    */
-  async retrieveAll(): Promise<
-    Omit<BaseUserDto, 'password' | 'availability'>[]
-  > {
-    const retrivedUsers = await this.userRepository.findMany();
-
-    return retrivedUsers.map((user) => ({
-      id: user.id,
-      name: user.name,
+  toUserType(user: User): UserType {
+    return {
+      firstName: user.firstName,
+      lastName: user.lastName,
       email: user.email,
       phone: user.phone,
-      photo: user.photo!,
-      role: user.role,
-    }));
+      avatar: user.avatar!,
+      dateOfBirth: user.dateOfBirth!,
+      gender: user.gender ?? undefined,
+      address: user.address ?? undefined,
+      city: user.city ?? undefined,
+      state: user.state ?? undefined,
+      zipCode: user.zipCode ?? undefined,
+      country: user.country ?? undefined,
+    };
   }
 
   /**
-   * Retrieves all User objects from the database with a specific role.
+   * Finds a User by their id and validates it.
+   *
+   * @param {string} id - The id of the User to find.
+   *
+   * @returns {Promise<User>} - A promise that resolves to the User.
+   */
+  private async findAndValidateUser(id: string): Promise<User> {
+    const user = await this.userRepository.findUnique({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
+
+  /**
+   * Retrieves all Users by their role.
+   *
+   * @param {UserFilterInput} filter - The filter of the Users to retrieve.
+   * @param {PaginationOptions<{
+   *   firstName?: 'asc' | 'desc';
+   *   lastName?: 'asc' | 'desc';
+   *   email?: 'asc' | 'desc';
+   *   phone?: 'asc' | 'desc';
+   *   role?: 'asc' | 'desc';
+   * }>} pagination - The pagination of the Users to retrieve.
+   *
+   * @returns {Promise<User[]>} - A promise that resolves to the User data.
+   */
+  async findMany(args: Prisma.UserFindManyArgs): Promise<UserConnection> {
+    const users = await this.userRepository.findMany(args);
+
+    return {
+      nodes: users.map((user) => this.toUserType(user)),
+      totalCount: users.length,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    };
+  }
+
+  /**
+   * Retrieves all Users by their role.
    *
    * @param {Role} role - The role of the Users to retrieve.
    *
-   * @returns {Promise<Omit<BaseUserDto, 'password'>[]>} - A promise that resolves to an array of User objects
-   * excluding the password field and filtered by the given role.
-   *
-   * @example
-   * const staffUsers = await userService.retrieveAllByRole(Role.STAFF);
+   * @returns {Promise<User[]>} - A promise that resolves to the User data.
    */
-  async retrieveAllByRole(
-    role: Role,
-  ): Promise<Omit<BaseUserDto, 'password'>[]> {
-    const retrivedUsers = await this.userRepository.findManyByRole(role);
-
-    return retrivedUsers.map((user) => ({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      photo: user.photo!,
-      role: user.role,
-      availability: user.availability,
-    }));
+  async findManyByRole(role: Role): Promise<User[]> {
+    const users = await this.userRepository.findMany({ where: { role } });
+    return users;
   }
 
   /**
-   * Retrieves the first User object by its unique id and appointment date and time.
-   *
-   * @param {string} id - The id of the User to retrieve.
-   * @param {string} date - The date of the appointment.
-   * @param {string} time - The time of the appointment.
-   *
-   * @returns {Promise<Omit<BaseUserDto, 'password'>>} - A promise that resolves to the User object
-   * with the given id, date, and time, or throws an error if the User is not found.
-   *
-   * @throws {UserNotFoundException} - Thrown if no User with the given criteria is found in the database.
-   */
-  async retrieveFirstByIdAndDateAndTime(
-    id: string,
-    date: string,
-    time: string,
-  ): Promise<Omit<BaseUserDto, 'password'>> {
-    const retrievedUser = await this.userRepository.findFirst(id, date, time);
-
-    if (!retrievedUser) {
-      throw new UserNotFoundException('User not found');
-    }
-
-    return {
-      id: retrievedUser.id,
-      name: retrievedUser.name,
-      email: retrievedUser.email,
-      phone: retrievedUser.phone,
-      photo: retrievedUser.photo!,
-      role: retrievedUser.role,
-    };
-  }
-
-  /**
-   * Retrieves a single User object by its unique email.
-   *
-   * @param {string} email - The email of the User to retrieve.
-   *
-   * @returns {Promise<Omit<BaseUserDto, 'password'>>} - A promise that resolves to the User object with the given email.
-   *
-   * @throws {MissingRequiredPropertiesException} - Thrown if the email is missing.
-   * @throws {UserNotFoundException} - Thrown if no User with the given email is found in the database.
-   *
-   * @example
-   * const user = await userService.retrieveByEmail('dYH2M@example.com');
-   *
-   */
-  async retrieveByEmail(email: string): Promise<Omit<BaseUserDto, 'password'>> {
-    if (!email) {
-      throw new MissingRequiredPropertiesException();
-    }
-
-    const retrivedUser = await this.userRepository.findUniqueByEmail(email);
-
-    if (!retrivedUser) {
-      throw new UserNotFoundException('User not found');
-    }
-
-    return {
-      id: retrivedUser.id,
-      name: retrivedUser.name,
-      email: retrivedUser.email,
-      phone: retrivedUser.phone,
-      photo: retrivedUser.photo!,
-      role: retrivedUser.role,
-    };
-  }
-
-  /**
-   * Retrieves a single User object by its unique id.
+   * Retrieves a User by their id.
    *
    * @param {string} userId - The id of the User to retrieve.
    *
-   * @returns {Promise<Omit<BaseUserDto, 'password'>>} - A promise that resolves to the User object with the given email.
-   *
-   * @example
-   * const user = await userService.retrieveById('1')
-   *
-   * @throws {MissingRequiredPropertiesException} - Thrown if the userId is missing or undefined.
-   * @throws {UserNotFoundException} - Thrown if the User with the given id does not exist in the database.
+   * @returns {Promise<User>} - A promise that resolves to the User data.
    */
-  async retrieveById(userId: string): Promise<Omit<BaseUserDto, 'password'>> {
-    if (!userId) {
-      throw new MissingRequiredPropertiesException();
-    }
+  async findById(userId: string): Promise<User> {
+    return await this.findAndValidateUser(userId);
+  }
 
-    const retrivedUser = await this.userRepository.findUnique(userId);
+  /**
+   * Retrieves a User by their email.
+   *
+   * @param {string} email - The email of the User to retrieve.
+   *
+   * @returns {Promise<User | null>} - A promise that resolves to the User with the given email, or null if no User is found.
+   */
+  async findByEmail(email: string): Promise<User | null> {
+    const user = await this.userRepository.findUnique({ where: { email } });
+    return user;
+  }
 
-    if (!retrivedUser) {
-      throw new UserNotFoundException('User not found');
-    }
-
-    return {
-      id: retrivedUser.id,
-      name: retrivedUser.name,
-      email: retrivedUser.email,
-      phone: retrivedUser.phone,
-      photo: retrivedUser.photo!,
-      role: retrivedUser.role,
-    };
+  /**
+   * Retrieves a User by their phone.
+   *
+   * @param {string} phone - The phone of the User to retrieve.
+   *
+   * @returns {Promise<User | null>} - A promise that resolves to the User with the given phone, or null if no User is found.
+   */
+  async findByPhone(phone: string): Promise<User | null> {
+    return await this.userRepository.findUnique({ where: { phone } });
   }
 
   /**
    * Creates a new User in the database.
    *
-   * @param {CreateUserDto} user - The User data to create, which may include optional availability.
+   * @param {CreateUserInput} user - The User data to create.
    *
-   * @returns {Promise<ApiResponse<Omit<BaseUserDto, 'id' | 'password' | 'role'>>>>} - A promise that resolves to an ApiResponse object containing the newly created User's base data.
-   *
-   * @throws {BadRequestException} - Thrown if the User data is missing required fields.
-   * @throws {ConflictException} - Thrown if the email or phone is already registered.
-   *
-   * @example
-   * const user = await userService.create({
-   *   name: 'John Doe',
-   *   email: 'john@example.com',
-   *   password: 'mySecretPassword',
-   *   phone: '123-456-7890',
-   *   photo: 'https://example.com/john.jpg',
-   * });
+   * @returns {Promise<UserType>} - A promise that resolves to the created User data.
    */
-  async create(
-    user: CreateUserDto,
-  ): Promise<ApiResponse<Omit<BaseUserDto, 'id' | 'password' | 'role'>>> {
-    if (!user.name || !user.email) {
-      throw new BadRequestException('Name and email are required');
+  async create(user: CreateUserInput): Promise<User> {
+    if (
+      !user.firstName ||
+      !user.lastName ||
+      !user.password ||
+      !user.phone ||
+      !user.email
+    ) {
+      throw new BadRequestException(
+        `Fields firstName, lastName, password, phone and email are required.`,
+      );
     }
 
-    if (await this.userRepository.findUniqueByEmail(user.email)) {
+    if (await this.findByEmail(user.email)) {
       throw new ConflictException('Email already registered! Try logging in.');
     }
 
-    if (await this.userRepository.findUniqueByPhone(user.phone)) {
+    if (await this.findByPhone(user.phone)) {
       throw new ConflictException('Phone already registered! Try logging in.');
     }
 
-    await this.userRepository.create({
-      name: user.name,
+    const newUser = await this.userRepository.create({
+      firstName: user.firstName,
+      lastName: user.lastName,
       email: user.email,
-      password: await hash(user.password, this.saltRounds),
+      password: await this.hashingService.hash(user.password),
       phone: user.phone,
-      photo: user.photo,
+      avatar: user.avatar,
     });
 
-    return {
-      message: 'User created successfully',
-      data: {
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        photo: user.photo ? user.photo : '',
-      },
-    };
+    return newUser;
   }
 
   /**
@@ -236,13 +183,43 @@ export class UserService {
    *
    * @returns {Promise<void>} - A promise that resolves when the User has been deleted.
    *
-   * @throws {UserNotFoundException} - Thrown if the User with the given id does not exist in the database.
+   * @throws {NotFoundException} - Thrown if the User with the given id does not exist in the database.
+   */
+  async deactivate(id: string): Promise<void> {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    await this.userRepository.deactivate(id);
+  }
+
+  /**
+   * Activates a User in the database.
+   *
+   * @param {string} id - The id of the User to activate.
+   *
+   * @returns {Promise<void>} - A promise that resolves when the User has been activated.
+   */
+  async activate(id: string): Promise<void> {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    await this.userRepository.activate(id);
+  }
+
+  /**
+   * Hard deletes a User from the database.
+   *
+   * @param {string} id - The id of the User to delete.
+   *
+   * @returns {Promise<void>} - A promise that resolves when the User has been deleted.
    */
   async delete(id: string): Promise<void> {
-    if (!(await this.userRepository.findUnique(id))) {
-      throw new UserNotFoundException('User not found');
+    const user = await this.findById(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
-
     await this.userRepository.delete(id);
   }
 
@@ -256,8 +233,8 @@ export class UserService {
    *
    * @throws {UserNotFoundException} - Thrown if the User with the given id does not exist in the database.
    */
-  async update(id: string, user: UpdateUserDto): Promise<void> {
-    if (!(await this.userRepository.findUnique(id))) {
+  async update(id: string, user: UpdateUserInput): Promise<void> {
+    if (!(await this.findById(id))) {
       throw new UserNotFoundException('User not found');
     }
 
@@ -278,13 +255,13 @@ export class UserService {
    */
   async changePassword(
     userId: string,
-    { currentPassword, newPassword }: ChangePasswordDto,
+    { currentPassword, newPassword }: ChangePasswordInput,
   ): Promise<void> {
     if (!userId) {
       throw new MissingRequiredPropertiesException('User ID is required');
     }
 
-    const user = await this.userRepository.findUnique(userId);
+    const user = await this.findById(userId);
 
     if (!user) {
       throw new UserNotFoundException('User not found');
@@ -299,7 +276,7 @@ export class UserService {
       throw new InvalidCredentialsException();
     }
 
-    const hashedPassword = await hash(newPassword, 10);
+    const hashedPassword = await this.hashingService.hash(newPassword);
 
     await this.userRepository.updatePassword(userId, hashedPassword);
   }
@@ -315,18 +292,21 @@ export class UserService {
    * @throws {MissingRequiredPropertiesException} - Thrown if the token or new password is missing or undefined.
    * @throws {UserNotFoundException} - Thrown if the User with the given token does not exist in the database.
    */
-  async resetPassword(userId: string, newPassword: string): Promise<string> {
-    if (!userId || !newPassword) {
+  async resetPassword(
+    userId: string,
+    { newPassword, confirmPassword }: ChangePasswordInput,
+  ): Promise<string> {
+    if (!userId || !newPassword || !confirmPassword) {
       throw new MissingRequiredPropertiesException();
     }
 
-    const retrievedUser = await this.userRepository.findUnique(userId);
+    const retrievedUser = await this.findById(userId);
 
     if (!retrievedUser) {
       throw new UserNotFoundException('User not found');
     }
 
-    const hashedNewPassword = await hash(newPassword, 10);
+    const hashedNewPassword = await this.hashingService.hash(newPassword);
 
     await this.userRepository.updatePassword(
       retrievedUser.id,
@@ -337,73 +317,75 @@ export class UserService {
   }
 
   /**
-   * Verifies a User in the database.
-   *
-   * @param {string} email - The email of the User to verify.
-   *
-   * @returns {Promise<string>} - A promise that resolves to a string 'User verified successfully' if the operation is successful.
-   *
-   * @throws {MissingRequiredPropertiesException} - Thrown if the email is missing or undefined.
-   * @throws {UserNotFoundException} - Thrown if the User with the given email does not exist in the database.
-   */
-  async verifyUser(email: string): Promise<string> {
-    const user = await this.retrieveByEmail(email);
-
-    if (!user.id) {
-      throw new UserNotFoundException('User not found');
-    }
-
-    if (user.verifiedAt) {
-      throw new BadRequestException('User already verified');
-    }
-
-    const retrievedUser = await this.userRepository.verifyUser(user.id);
-
-    if (!retrievedUser) {
-      throw new UserNotFoundException('User not found');
-    }
-
-    if (!retrievedUser.verifiedAt || retrievedUser.verifiedAt === null) {
-      throw new NotFoundException('Error verifying user');
-    }
-
-    return 'User verified successfully';
-  }
-
-  /**
    * Validates the given User credentials.
    *
-   * @param {LoginUserDto} user - The User data to validate.
+   * @param {LoginUserInput} user - The User data to validate.
    *
-   * @returns {Promise<Omit<BaseUserDto, 'password'>>} - A promise that resolves to the User data without the password if the
-   * credentials are valid, or throws an error if they are not.
-   *
-   * @throws {UserNotFoundException} - Thrown if no User with the given email is found in the database.
-   * @throws {InvalidCredentialsException} - Thrown if the email is invalid.
-   * @throws {UnauthorizedException} - Thrown if the given password does not match the User's password in the database.
+   * @returns {Promise<UserType>} - A promise that resolves to the User data without the password if the credentials are valid, or throws an error if they are not.
    */
-  async _validateCredentials(
-    user: LoginUserDto,
-  ): Promise<Omit<BaseUserDto, 'password'>> {
+  async _validateCredentials(user: LoginUserInput): Promise<UserType> {
     const { email, password } = user;
 
-    const retrivedUser = await this.userRepository.findUniqueByEmail(email);
+    const retrivedUser = await this.findByEmail(email);
 
     if (!retrivedUser) {
       throw new UserNotFoundException('User not found');
     }
 
-    if (!(await bcrypt.compare(password, retrivedUser.password))) {
+    if (!(await this.hashingService.compare(password, retrivedUser.password))) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
     return {
-      id: retrivedUser.id,
-      name: retrivedUser.name,
+      firstName: retrivedUser.firstName,
+      lastName: retrivedUser.lastName,
       email: retrivedUser.email,
       phone: retrivedUser.phone,
-      photo: retrivedUser.photo!,
-      role: retrivedUser.role,
+      avatar: retrivedUser.avatar!,
     };
+  }
+
+  /**
+   * Sets the password reset token for a User in the database.
+   *
+   * @param {string} id - The id of the User whose password reset token is to be set.
+   * @param {string} tokenHash - The hash of the password reset token.
+   * @param {Date} expiresAt - The expiration date of the password reset token.
+   */
+  async setPasswordResetToken(
+    id: string,
+    tokenHash: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    await this.userRepository.updatePasswordResetToken(
+      id,
+      tokenHash,
+      expiresAt,
+    );
+  }
+
+  /**
+   * Finds a User by their password reset token.
+   *
+   * @param {string} tokenHash - The hash of the password reset token.
+   * @returns {Promise<User | null>} - A promise that resolves to the User with the given password reset token, or null if no User is found.
+   */
+  async findByPasswordResetToken(tokenHash: string): Promise<User | null> {
+    return await this.userRepository.findFirst({
+      where: { passwordResetToken: tokenHash },
+    });
+  }
+
+  /**
+   * Finds a User by their verification token.
+   *
+   * @param {string} tokenHash - The hash of the verification token.
+   *
+   * @returns {Promise<User | null>} - A promise that resolves to the User with the given verification token, or null if no User is found.
+   */
+  async findByVerificationToken(tokenHash: string): Promise<User | null> {
+    return await this.userRepository.findFirst({
+      where: { verificationToken: tokenHash },
+    });
   }
 }

@@ -1,90 +1,47 @@
 import { Injectable } from '@nestjs/common';
-import { Appointment, Status } from 'prisma/app/generated/prisma/client';
+import {
+  Appointment,
+  Prisma,
+  Status,
+} from 'prisma/app/generated/prisma/client';
+import { BaseRepository } from 'src/common/base/base.repository';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateAppointmentDto } from './dtos/create-appointment.dto';
-import { UpdateAppointmentDto } from './dtos/update-appointment.dto';
+import { UpdateAppointmentDto } from './input/update-appointment.input';
 
 @Injectable()
-export class AppointmentRepository {
+export class AppointmentRepository implements BaseRepository<Appointment> {
   constructor(private readonly prisma: PrismaService) {}
-
   /**
-   * Create a new Appointment in the database.
-   * @param data The Appointment data to be inserted.
-   * @returns The newly created Appointment.
-   * @throws If the Appointment already exists.
+   * Creates a new Appointment in the database.
+   *
+   * @param {Prisma.AppointmentCreateInput} data - The Appointment data to create.
+   *
+   * @returns {Promise<Appointment>} - A promise that resolves to the newly created Appointment.
    */
-  async create(data: CreateAppointmentDto): Promise<Appointment> {
+  async create(data: Prisma.AppointmentCreateInput): Promise<Appointment> {
     const response = await this.prisma.appointment.create({
-      data: {
-        notes: data.notes,
-        date: data.date,
-        time: data.time,
-        status: 'PENDING',
-        price: data.price,
-        customerId: data.customerId,
-        staffId: data.staffId,
-        serviceId: data.serviceId,
-      },
+      data,
     });
     return response;
   }
 
-  /**
-   * Retrieves a single Appointment object by its unique id.
-   *
-   * @param {string} id - The id of the Appointment to retrieve.
-   *
-   * @returns {Promise<Appointment>} - A promise that resolves to the Appointment object with the given id.
-   *
-   * @throws {Prisma.NotFoundError} - Thrown if the Appointment with the given id does not exist in the database.
-   */
-  async findUnique(id: string): Promise<Appointment> {
-    const data = await this.prisma.appointment.findUnique({
-      where: { id: id },
-    });
-    return data!;
-  }
-
-  /**
-   * Retrieves all Appointment objects associated with a given Customer.
-   *
-   * @param {string} customerId - The unique identifier of the Customer whose appointments are to be fetched.
-   *
-   * @returns {Promise<Appointment[]>} - A promise that resolves to an array of Appointment objects related to the specified Customer.
-   *
-   * @throws {Prisma.NotFoundError} - Thrown if no Appointments are found for the given Customer id.
-   */
-  async findAllCustomerAppointments(
-    customerId: string,
-  ): Promise<Appointment[]> {
-    const data = await this.prisma.appointment.findMany({
-      where: { customerId: customerId },
-    });
-    return data;
-  }
-
-  /**
-   * Retrieves all Appointment objects that belong to the given staff id.
-   *
-   * @param {string} staffId - The id of the staff member to retrieve the appointments for.
-   *
-   * @returns {Promise<Appointment[]>} - A promise that resolves to an array of Appointment objects that belong to the given staff id.
-   */
-  async findAllStaffAppointments(staffId: string): Promise<Appointment[]> {
-    const data = await this.prisma.appointment.findMany({
-      where: { staffId: staffId },
-    });
-    return data;
+  async findUnique(
+    args: Prisma.AppointmentFindUniqueArgs,
+  ): Promise<Appointment | null> {
+    return await this.prisma.appointment.findUnique(args);
   }
 
   /**
    * Retrieves all Appointment objects in the database.
    *
+   * @param {Prisma.AppointmentFindManyArgs} args - The arguments to filter the appointments.
+   *
    * @returns {Promise<Appointment[]>} - A promise that resolves to an array of Appointment objects.
    */
-  async findAll(): Promise<Appointment[]> {
-    return await this.prisma.appointment.findMany();
+  async findMany(
+    args?: Prisma.AppointmentFindManyArgs,
+  ): Promise<Appointment[]> {
+    return await this.prisma.appointment.findMany(args);
   }
 
   /**
@@ -170,13 +127,33 @@ export class AppointmentRepository {
    * @returns {Promise<Appointment | null>} - A promise that resolves to the first Appointment if found, or `null` if no Appointment matches the given criteria.
    */
   async findFirst(
-    staffId: string,
-    date: Date,
-    time: string,
+    args: Prisma.AppointmentFindFirstArgs,
   ): Promise<Appointment | null> {
-    const data = await this.prisma.appointment.findFirst({
-      where: { staffId: staffId, date: date, time: time },
+    return await this.prisma.appointment.findFirst(args);
+  }
+
+  async deactivate(id: string): Promise<void> {
+    await this.prisma.appointment.update({
+      where: { id: id },
+      data: { deletedAt: new Date() },
     });
-    return data;
+  }
+
+  async exists(id: string): Promise<boolean> {
+    const data = await this.prisma.appointment.findUnique({
+      where: { id: id },
+    });
+    return !!data;
+  }
+
+  async count(where: Prisma.AppointmentWhereInput = {}): Promise<number> {
+    return await this.prisma.appointment.count({ where });
+  }
+
+  async restore(id: string): Promise<Appointment> {
+    return await this.prisma.appointment.update({
+      where: { id: id },
+      data: { deletedAt: null },
+    });
   }
 }

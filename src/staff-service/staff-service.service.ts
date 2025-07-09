@@ -3,16 +3,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Role } from 'prisma/app/generated/prisma/client';
+import { Prisma, Role, StaffService } from 'prisma/app/generated/prisma/client';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
-import { UserNotFoundException } from 'src/common/exceptions/user-not-found.exception';
 import { ServiceItemService } from 'src/serviceItem/service-item.service';
 import { UserService } from 'src/user/user.service';
-import { BaseStaffServiceDto } from './dtos/base-staff-service.dto';
-import { CreateStaffServiceDto } from './dtos/create-staff-service.dto';
-import { UpdateStaffServiceDto } from './dtos/update-staff-service.dto';
 import { StaffServiceRepository } from './staff-service.repository';
-import { ApiResponse } from 'src/common/types/api-resonse';
 
 @Injectable()
 export class StaffServiceService {
@@ -25,22 +20,16 @@ export class StaffServiceService {
   /**
    * Retrieves all StaffService objects from the database.
    *
-   * @returns {Promise<Omit<BaseStaffServiceDto, 'createdAt'>[]>} - A promise that resolves to an array of
-   * StaffService objects excluding the 'createdAt' field.
+   * @returns {Promise<StaffService[]>} - A promise that resolves to an array of
+   * StaffService objects.
    *
    * @example
-   * const staffServices = await staffServiceService.retrieveAll();
+   * const staffServices = await staffServiceService.findMany();
    */
-  async retrieveAll(): Promise<Omit<BaseStaffServiceDto, 'createdAt'>[]> {
-    const staffServices = await this.staffServiceRepository.findMany();
-
-    return staffServices.map((staffService) => ({
-      id: staffService.id,
-      staffId: staffService.staffId,
-      serviceId: staffService.serviceId,
-      customPrice: staffService.customPrice,
-      active: staffService.active,
-    }));
+  async findMany(
+    args: Prisma.StaffServiceFindManyArgs,
+  ): Promise<StaffService[]> {
+    return await this.staffServiceRepository.findMany(args);
   }
 
   /**
@@ -49,32 +38,31 @@ export class StaffServiceService {
    * @param {string} staffId - The unique identifier of the staff member whose
    * StaffService object is to be retrieved.
    *
-   * @returns {Promise<BaseStaffServiceDto>} - A promise that resolves to a
-   * BaseStaffServiceDto object containing details of the staff member's service.
+   * @returns {Promise<StaffService[]>} - A promise that resolves to an array of
+   * StaffService objects containing details of the staff member's service.
    *
    * @throws {MissingRequiredPropertiesException} - Thrown if the staffId is not provided.
    * @throws {NotFoundException} - Thrown if no services are found related to the
    * specified staff member.
    */
-  async retrieveByStaffId(staffId: string): Promise<BaseStaffServiceDto> {
+  async findManyByStaffId(staffId: string): Promise<StaffService[]> {
     if (!staffId) {
       throw new MissingRequiredPropertiesException();
     }
 
-    const retrievedStaffService =
-      await this.staffServiceRepository.findUniqueByStaffId(staffId);
+    const retrievedStaffService = await this.findMany({
+      where: {
+        staff: {
+          id: staffId,
+        },
+      },
+    });
 
     if (!retrievedStaffService) {
       throw new NotFoundException('No services related for this staff');
     }
 
-    return {
-      id: retrievedStaffService.id,
-      staffId: retrievedStaffService.staffId,
-      serviceId: retrievedStaffService.serviceId,
-      customPrice: retrievedStaffService.customPrice,
-      active: retrievedStaffService.active,
-    };
+    return retrievedStaffService;
   }
 
   /**
@@ -91,25 +79,30 @@ export class StaffServiceService {
    * @throws {NotFoundException} - Thrown if no services are found related to the
    * specified service.
    */
-  async retrieveByServiceId(serviceId: string): Promise<BaseStaffServiceDto[]> {
+  async findManyByServiceId(serviceId: string): Promise<StaffService[]> {
     if (!serviceId) {
       throw new MissingRequiredPropertiesException();
     }
 
-    const retrievedStaffService =
-      await this.staffServiceRepository.findManyByServiceId(serviceId);
+    const retrievedStaffService = await this.findMany({
+      where: {
+        service: {
+          id: serviceId,
+        },
+      },
+    });
 
     if (!retrievedStaffService) {
       throw new NotFoundException('No services related for this staff');
     }
 
-    return retrievedStaffService.map((staffService) => ({
-      id: staffService.id,
-      staffId: staffService.staffId,
-      serviceId: staffService.serviceId,
-      customPrice: staffService.customPrice,
-      active: staffService.active,
-    }));
+    return retrievedStaffService;
+  }
+
+  async findById(id: string): Promise<StaffService | null> {
+    return await this.staffServiceRepository.findUnique({
+      where: { id: id },
+    });
   }
 
   /**
@@ -136,46 +129,47 @@ export class StaffServiceService {
    * });
    */
   async create(
-    staffService: CreateStaffServiceDto,
-  ): Promise<ApiResponse<Omit<BaseStaffServiceDto, 'id' | 'createdAt'>>> {
-    if (!staffService.staffId || !staffService.serviceId) {
+    staffService: Prisma.StaffServiceCreateInput,
+  ): Promise<StaffService> {
+    if (
+      !staffService.staff.connect!.id! ||
+      !staffService.service.connect!.id!
+    ) {
       throw new MissingRequiredPropertiesException();
     }
 
-    const staff = await this.userService.retrieveById(staffService.staffId);
+    const staff = await this.userService.findById(
+      staffService.staff.connect!.id,
+    );
 
     if (!staff) {
-      throw new UserNotFoundException();
+      throw new NotFoundException('Staff not found');
     }
 
     if (staff.role !== Role.STAFF) {
       throw new BadRequestException('User is not a staff member');
     }
 
-    const service = await this.serviceItemService.retrieveById(
-      staffService.serviceId,
+    const service = await this.serviceItemService.findById(
+      staffService.service.connect!.id,
     );
 
     if (!service) {
       throw new NotFoundException('Service not found');
     }
 
-    await this.staffServiceRepository.create({
-      staffId: staffService.staffId,
-      serviceId: staffService.serviceId,
-      customPrice: staffService.customPrice,
-      active: staffService.active,
+    const createdStaffService = await this.staffServiceRepository.create({
+      staff: {
+        connect: { id: staffService.staff.connect!.id },
+      },
+      service: {
+        connect: { id: staffService.service.connect!.id },
+      },
+      customPrice: staffService.customPrice ?? null,
+      isActive: staffService.isActive ?? true,
     });
 
-    return {
-      message: 'Relation created successfully',
-      data: {
-        staffId: staffService.staffId,
-        serviceId: staffService.serviceId,
-        customPrice: staffService.customPrice,
-        active: staffService.active,
-      },
-    };
+    return createdStaffService;
   }
 
   /**
@@ -188,7 +182,7 @@ export class StaffServiceService {
    * @throws {NotFoundException} - Thrown if the staff-service object with the given id does not exist in the database.
    */
   async delete(id: string): Promise<void> {
-    if (!(await this.staffServiceRepository.findUnique(id))) {
+    if (!(await this.findById(id))) {
       throw new NotFoundException('Relation not found');
     }
 
@@ -210,29 +204,37 @@ export class StaffServiceService {
    */
   async update(
     id: string,
-    updateStaffServiceDto: UpdateStaffServiceDto,
+    updateStaffServiceDto: Prisma.StaffServiceUpdateInput,
   ): Promise<void> {
-    const staff = await this.userService.retrieveById(
-      updateStaffServiceDto.staffId,
+    if (!updateStaffServiceDto.staff?.connect?.id) {
+      throw new MissingRequiredPropertiesException();
+    }
+
+    const staff = await this.userService.findById(
+      updateStaffServiceDto.staff.connect.id,
     );
 
     if (!staff) {
-      throw new UserNotFoundException();
+      throw new NotFoundException('Staff not found');
     }
 
     if (staff.role !== Role.STAFF) {
       throw new BadRequestException('User is not a staff member');
     }
 
-    const service = await this.serviceItemService.retrieveById(
-      updateStaffServiceDto.serviceId,
+    if (!updateStaffServiceDto.service?.connect?.id) {
+      throw new MissingRequiredPropertiesException();
+    }
+
+    const service = await this.serviceItemService.findById(
+      updateStaffServiceDto.service.connect.id,
     );
 
     if (!service) {
       throw new NotFoundException('Service not found');
     }
 
-    if (!(await this.staffServiceRepository.findUnique(id))) {
+    if (!(await this.findById(id))) {
       throw new NotFoundException('Relation not found');
     }
 
@@ -250,12 +252,11 @@ export class StaffServiceService {
    * @throws {NotFoundException} - Thrown if the staff-service object with the given id does not exist in the database.
    */
   async patchActive(id: string, active: boolean): Promise<string> {
-    const updatedActite = await this.staffServiceRepository.updateActive(
-      id,
-      active,
-    );
+    await this.staffServiceRepository.update(id, {
+      isActive: active,
+    });
 
-    return `Successfully updated active status to ${updatedActite}`;
+    return `Successfully updated active status to ${active}`;
   }
 
   /**
@@ -269,8 +270,10 @@ export class StaffServiceService {
    * @throws {NotFoundException} - Thrown if the staff-service object with the given id does not exist in the database.
    */
   async patchACustomPrice(id: string, customPrice: number): Promise<string> {
-    await this.staffServiceRepository.updateCustomPrice(id, customPrice);
+    await this.staffServiceRepository.update(id, {
+      customPrice: customPrice,
+    });
 
-    return 'Custom price updated successfully';
+    return `Custom price updated successfully to ${customPrice}`;
   }
 }

@@ -1,118 +1,59 @@
 import { Injectable } from '@nestjs/common';
-import { UserSession } from 'prisma/app/generated/prisma/client';
+import { Prisma, UserSession } from 'prisma/app/generated/prisma/client';
+import { BaseRepository } from 'src/common/base/base.repository';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateUserSessionDto } from './dtos/create-user-session.dto';
 
 @Injectable()
-export class UserSessionRepository {
+export class UserSessionRepository implements BaseRepository<UserSession> {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Creates a new UserSession object in the database.
+   * Creates a new UserSession.
    *
-   * @param {CreateUserSessionDto} data The data to use for creating the new UserSession.
-   *
-   * @returns {Promise<UserSession>} The newly created UserSession object.
-   *
+   * @param {Prisma.UserSessionCreateInput} data - The data of the UserSession to create.
+   * @returns {Promise<UserSession>} - A promise that resolves to the created UserSession.
    */
-  async create(data: CreateUserSessionDto): Promise<UserSession> {
-    const session = await this.prisma.userSession.create({
+  async create(data: Prisma.UserSessionCreateInput): Promise<UserSession> {
+    return await this.prisma.userSession.create({
       data: {
-        userId: data.userId,
-        refreshToken: data.refreshToken,
-        userAgent: data.userAgent ?? null,
-        ipAddress: data.ipAddress ?? null,
-        expiresAt: data.expiresAt!,
-      },
-    });
-
-    return session;
-  }
-
-  /**
-   * Retrieves a single UserSession object by its unique id.
-   *
-   * @param {string} id - The id of the UserSession to retrieve.
-   *
-   * @returns {Promise<UserSession>} - A promise that resolves to the UserSession object with the given id.
-   *
-   * @throws {Prisma.NotFoundError} - Thrown if the UserSession with the given id does not exist in the database.
-   */
-  async findUnique(id: string): Promise<UserSession> {
-    const data = await this.prisma.userSession.findUnique({
-      where: { id: id },
-    });
-    return data!;
-  }
-
-  /**
-   * Retrieves a UserSession object by its unique refreshToken.
-   *
-   * @param {string} refreshToken - The refreshToken of the UserSession to retrieve.
-   *
-   * @returns {Promise<UserSession | null>} - A promise that resolves to the UserSession object with the given refreshToken, or null if no such UserSession exists in the database.
-   */
-  async findByRefreshToken(refreshToken: string): Promise<UserSession | null> {
-    const data = await this.prisma.userSession.findFirst({
-      where: { refreshToken: refreshToken },
-    });
-    return data;
-  }
-
-  /**
-   * Retrieves an array of UserSession objects that belong to a specific User.
-   *
-   * @param {string} userId - The id of the User whose UserSessions are to be retrieved.
-   *
-   * @returns {Promise<UserSession[]>} - A promise that resolves to an array of UserSession objects.
-   */
-  async findByUserId(userId: string): Promise<UserSession[]> {
-    const data = await this.prisma.userSession.findMany({
-      where: { userId: userId },
-    });
-    return data;
-  }
-
-  /**
-   * Updates the refreshToken of a UserSession in the database.
-   *
-   * @param {string} id - The unique identifier of the UserSession to update.
-   * @param {string} newToken - The new refreshToken value.
-   * @param {Date} expiresAt - The new expiresAt value.
-   *
-   * @returns {Promise<void>} - A promise that resolves when the UserSession's refreshToken has been updated.
-   *
-   * @throws {Prisma.NotFoundError} - Thrown if the UserSession with the given id does not exist in the database.
-   */
-  async updateRefreshToken(
-    id: string,
-    newToken: string,
-    expiresAt: Date,
-  ): Promise<void> {
-    await this.prisma.userSession.update({
-      where: { id: id },
-      data: {
-        refreshToken: newToken,
-        expiresAt,
+        ...data,
+        isActive: false,
         createdAt: new Date(),
+        updatedAt: new Date(),
+        expiresAt: new Date(),
+        lastUsedAt: null,
       },
     });
   }
 
   /**
-   * Deletes a UserSession from the database using its refreshToken.
+   * Retrieves a UserSession object by its unique id.
    *
-   * @param {string} refreshToken - The refreshToken of the UserSession to delete.
-   *
-   * @returns {Promise<void>} - A promise that resolves when the UserSession has been deleted.
-   *
-   * @throws {Prisma.NotFoundError} - Thrown if the UserSession with the given refreshToken does not exist in the database.
+   * @param {Prisma.UserSessionFindUniqueArgs} args - The arguments to find a UserSession by.
+   * @returns {Promise<UserSession | null>} - A promise that resolves to the UserSession object if found, or null if not found.
    */
-  async deleteByRefreshToken(refreshToken: string): Promise<void> {
-    const session = await this.findByRefreshToken(refreshToken);
+  async findUnique(
+    args: Prisma.UserSessionFindUniqueArgs,
+  ): Promise<UserSession | null> {
+    return await this.prisma.userSession.findUnique(args);
+  }
 
+  async update(id: string, data: Prisma.UserSessionUpdateInput): Promise<void> {
+    await this.prisma.userSession.update({
+      where: { id },
+      data,
+    });
+  }
+
+  /**
+   * Deletes a UserSession from the database.
+   *
+   * @param {string} id - The id of the UserSession to delete.
+   * @returns {Promise<void>} - A promise that resolves when the UserSession has been deleted.
+   */
+  async delete(id: string): Promise<void> {
     await this.prisma.userSession.delete({
-      where: { id: session?.id },
+      where: { id },
     });
   }
 
@@ -133,5 +74,98 @@ export class UserSessionRepository {
     });
 
     return result.count;
+  }
+
+  /**
+   * Retrieves the first UserSession that matches the given arguments.
+   *
+   * @param {Prisma.UserSessionFindFirstArgs} args - The arguments to find a UserSession by.
+   * @returns {Promise<UserSession | null>} - A promise that resolves to the first UserSession object if found, or null if not found.
+   */
+  async findFirst(
+    args: Prisma.UserSessionFindFirstArgs,
+  ): Promise<UserSession | null> {
+    return await this.prisma.userSession.findFirst(args);
+  }
+
+  /**
+   * Retrieves multiple UserSessions from the database.
+   *
+   * @param {Prisma.UserSessionFindManyArgs} args - The arguments to find UserSessions by.
+   * @returns {Promise<UserSession[]>} - A promise that resolves to an array of UserSession objects.
+   */
+  async findMany(args: Prisma.UserSessionFindManyArgs): Promise<UserSession[]> {
+    return await this.prisma.userSession.findMany(args);
+  }
+
+  /**
+   * Counts the number of UserSessions that match the given arguments.
+   *
+   * @param {Prisma.UserSessionCountArgs} args - The arguments to count UserSessions by.
+   * @returns {Promise<number>} - A promise that resolves to the number of UserSessions that match the given arguments.
+   */
+  async count(args: Prisma.UserSessionCountArgs): Promise<number> {
+    return await this.prisma.userSession.count(args);
+  }
+
+  /**
+   * Deactivates a UserSession in the database.
+   *
+   * @param {string} id - The id of the UserSession to deactivate.
+   * @returns {Promise<void>} - A promise that resolves when the UserSession has been deactivated.
+   */
+  async deactivate(id: string): Promise<void> {
+    await this.prisma.userSession.update({
+      where: { id },
+      data: { isActive: false },
+    });
+  }
+
+  /**
+   * Restores a UserSession in the database.
+   *
+   * @param {string} id - The id of the UserSession to restore.
+   * @returns {Promise<UserSession>} - A promise that resolves to the restored UserSession.
+   */
+  async restore(id: string): Promise<UserSession> {
+    return await this.prisma.userSession.update({
+      where: { id },
+      data: {
+        isActive: true,
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  /**
+   * Checks if a UserSession exists in the database.
+   *
+   * @param {string} id - The id of the UserSession to check.
+   * @returns {Promise<boolean>} - A promise that resolves to true if the UserSession exists, or false if not.
+   */
+  async exists(id: string): Promise<boolean> {
+    return (
+      (await this.prisma.userSession.findUnique({ where: { id } })) !== null
+    );
+  }
+
+  /**
+   * Deactivates all active UserSessions for a specific User.
+   *
+   * @param {string} userId - The id of the User whose UserSessions are to be deactivated.
+   *
+   * @returns {Promise<void>} - A promise that resolves when the UserSessions have been deactivated.
+   */
+  async deactivateAllForUser(userId: string): Promise<void> {
+    await this.prisma.userSession.updateMany({
+      where: {
+        userId,
+        isActive: true,
+      },
+      data: {
+        isActive: false,
+        updatedAt: new Date(),
+      },
+    });
   }
 }

@@ -1,41 +1,67 @@
 import {
+  PipeTransform,
+  Injectable,
   ArgumentMetadata,
   BadRequestException,
-  Injectable,
-  Logger,
-  PipeTransform,
+  Type,
 } from '@nestjs/common';
-import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
+import { plainToClass } from 'class-transformer';
 
 @Injectable()
-export class ValidationPipe implements PipeTransform {
-  private readonly logger = new Logger(ValidationPipe.name);
-
-  async transform<T>(value: T, { metatype }: ArgumentMetadata): Promise<T> {
+export class CustomValidationPipe implements PipeTransform {
+  /**
+   * Transform the given value using the given type.
+   *
+   * The given value is validated using the given type.
+   * If the validation fails, a `BadRequestException` is thrown with the validation errors.
+   * Otherwise, the object created from the given value is returned.
+   *
+   * The given type is not validated if it is a primitive type (String, Boolean, Number, Array, Object).
+   * In this case, the given value is returned as is.
+   *
+   * @param value The value to transform.
+   * @param metadata The metadata for the value.
+   *
+   * @returns The transformed value.
+   *
+   * @throws {BadRequestException} If the value does not validate against the given type.
+   */
+  async transform<T>(value: T, { metatype }: ArgumentMetadata) {
     if (!metatype || !this.toValidate(metatype)) {
       return value;
     }
 
-    const object = plainToInstance(metatype, value) as object;
-    const errors = await validate(object);
+    const object = plainToClass(metatype, value) as object;
+
+    const errors = await validate(object, {
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    });
 
     if (errors.length > 0) {
-      this.logger.error('Validation failed', errors);
-      throw new BadRequestException('Validation failed');
+      throw new BadRequestException({
+        message: 'Validation failed',
+        errors: errors.map((error) => ({
+          property: error.property,
+          message: Object.values(error.constraints!)[0],
+        })),
+      });
     }
-
-    return value;
+    return object;
   }
 
-  private toValidate(metatype: unknown): boolean {
-    const types: (new (...args: any[]) => any)[] = [
-      String,
-      Boolean,
-      Number,
-      Array,
-      Object,
-    ];
-    return !types.includes(metatype as new (...args: any[]) => any);
+  /**
+   * Determine if the given type should be validated.
+   *
+   * Validation is skipped for primitive types, such as String, Boolean, Number, Array, and Object.
+   *
+   * @param metatype The type to check.
+   *
+   * @returns true if the type should be validated; false otherwise.
+   */
+  private toValidate(metatype: Type<any>): boolean {
+    const types: Type<any>[] = [String, Boolean, Number, Array, Object];
+    return !types.includes(metatype);
   }
 }

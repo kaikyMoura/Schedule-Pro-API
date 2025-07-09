@@ -1,143 +1,94 @@
 import { Injectable } from '@nestjs/common';
-import { Role, User } from 'prisma/app/generated/prisma/client';
+import { Prisma, User } from 'prisma/app/generated/prisma/client';
+import { BaseRepository } from 'src/common/base/base.repository';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateUserDto } from './dtos/create-user.dto';
-import { UpdateUserDto } from './dtos/update-user.dto';
-import { BaseUserDto } from './dtos/base-user.dto';
+import { UpdateUserInput } from './input/update-user.input';
 
 @Injectable()
-export class UserRepository {
-  constructor(private readonly prisma: PrismaService) {}
-
-  /**
-   * Creates a new User in the database.
-   *
-   * @param {CreateUserDto} data - The User data to create, which may include optional availability.
-   *
-   * @returns {Promise<BaseUserDto>} - A promise that resolves to the newly created User's base data.
-   */
-  async create(data: CreateUserDto): Promise<BaseUserDto> {
-    const response = await this.prisma.user.create({
-      data: {
-        ...data,
-        availability: data.availability
-          ? { create: data.availability }
-          : undefined,
-        appointments: undefined,
-        staffServices: undefined,
-        staffAppointments: undefined,
-        verifiedAt: undefined,
-      },
-    });
-    return {
-      id: response.id,
-      email: response.email,
-      password: response.password,
-      name: response.name,
-      phone: response.phone,
-      photo: response.photo!,
-      role: response.role,
-    };
+export class UserRepository extends BaseRepository<User> {
+  constructor(private readonly prisma: PrismaService) {
+    super();
   }
 
   /**
-   * Retrieves a single User object by its unique id.
+   * Creates a new user.
    *
-   * @param {string} id - The id of the User to retrieve.
+   * @param {Prisma.UserCreateInput} data - The user data to create.
    *
-   * @returns {Promise<User>} - A promise that resolves to the User object with the given id.
+   * @returns {Promise<User>} - A promise that resolves to the newly
+   * created user's data.
+   */
+  async create(data: Prisma.UserCreateInput): Promise<User> {
+    const response = await this.prisma.user.create({
+      data: data,
+    });
+
+    return response;
+  }
+
+  /**
+   * Retrieves a single User object based on unique criteria.
+   *
+   * @param {UserFindUniqueArgs} args - The unique criteria for finding the User.
+   * @returns {Promise<User | null>} - A promise that resolves to the User object if found, or null otherwise.
+   */
+  async findUnique(args: Prisma.UserFindUniqueArgs): Promise<User | null> {
+    return await this.prisma.user.findUnique(args);
+  }
+
+  async findMany(args: Prisma.UserFindManyArgs): Promise<User[]> {
+    return await this.prisma.user.findMany(args);
+  }
+
+  async findFirst(args: Prisma.UserFindFirstArgs): Promise<User | null> {
+    return await this.prisma.user.findFirst(args);
+  }
+
+  /**
+   * Checks if a User exists in the database.
+   *
+   * @param {string} id - The unique identifier of the User to check.
+   *
+   * @returns {Promise<boolean>} - A promise that resolves to `true` if the User exists, or `false` if not.
+   */
+  async exists(id: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: id },
+    });
+    return !!user;
+  }
+
+  /**
+   * Counts the number of Users that match the given criteria.
+   *
+   * @param {Prisma.UserWhereInput} where - The where clause to filter the users.
+   *
+   * @returns {Promise<number>} - A promise that resolves to the number of Users that match the given criteria.
+   */
+  async count(where: Prisma.UserWhereInput = {}): Promise<number> {
+    return await this.prisma.user.count({
+      where: {
+        ...where,
+        deletedAt: null,
+      },
+    });
+  }
+
+  /**
+   * Restores a deleted User in the database.
+   *
+   * @param {string} id - The unique identifier of the User to restore.
+   *
+   * @returns {Promise<User>} - A promise that resolves to the restored User object.
    *
    * @throws {Prisma.NotFoundError} - Thrown if the User with the given id does not exist in the database.
    */
-  async findUnique(id: string): Promise<User> {
-    const data = await this.prisma.user.findUnique({
+  async restore(id: string): Promise<User> {
+    const data = await this.prisma.user.update({
       where: { id: id },
+      data: { deletedAt: null },
     });
-    return data!;
-  }
-
-  /**
-   * Retrieves a single User object by its unique email.
-   *
-   * @param {string} email - The email of the User to retrieve.
-   *
-   * @returns {Promise<User>} - A promise that resolves to the User object with the given email.
-   *
-   * @throws {Prisma.NotFoundError} - Thrown if the User with the given email does not exist in the database.
-   */
-  async findUniqueByEmail(email: string): Promise<User> {
-    const data = await this.prisma.user.findUnique({
-      where: { email: email },
-    });
-    return data!;
-  }
-
-  /**
-   * Retrieves a single User object by its unique phone number.
-   *
-   * @param {string} phone - The phone number of the User to retrieve.
-   *
-   * @returns {Promise<User>} - A promise that resolves to the User object with the given phone number.
-   *
-   * @throws {Prisma.NotFoundError} - Thrown if the User with the given phone number does not exist in the database.
-   */
-
-  async findUniqueByPhone(phone: string): Promise<User> {
-    const data = await this.prisma.user.findUnique({
-      where: { phone: phone },
-    });
-    return data!;
-  }
-
-  /**
-   * Retrieves all User objects in the database.
-   *
-   * @returns {Promise<User[]>} - A promise that resolves to an array of User objects.
-   */
-  async findMany(): Promise<User[]> {
-    return await this.prisma.user.findMany();
-  }
-
-  /**
-   * Retrieves all User objects with a specific role.
-   *
-   * @param {Role} role - The role of the Users to retrieve.
-   *
-   * @returns {Promise<User[]>} - A promise that resolves to an array of User objects with the given role.
-   */
-  async findManyByRole(role: Role): Promise<BaseUserDto[]> {
-    return await this.prisma.user.findMany({
-      where: {
-        role: role,
-      },
-    });
-  }
-
-  /**
-   * Finds the first User with the given id that has an appointment at the given date and time.
-   *
-   * @param {string} id - The id of the User to find.
-   * @param {string} date - The date of the appointment.
-   * @param {string} time - The time of the appointment.
-   *
-   * @returns {Promise<User | null>} - A promise that resolves to the User if found, or `null` if not found.
-   */
-  async findFirst(
-    id: string,
-    date: string,
-    time: string,
-  ): Promise<User | null> {
-    return await this.prisma.user.findFirst({
-      where: {
-        id: id,
-        appointments: {
-          some: {
-            date: date,
-            time: time,
-          },
-        },
-      },
-    });
+    return data;
   }
 
   /**
@@ -150,7 +101,7 @@ export class UserRepository {
    *
    * @throws {Prisma.NotFoundError} - Thrown if the User with the given id does not exist in the database.
    */
-  async update(id: string, user: UpdateUserDto): Promise<void> {
+  async update(id: string, user: UpdateUserInput): Promise<void> {
     await this.prisma.user.update({
       where: { id: id },
       data: user && {
@@ -194,7 +145,7 @@ export class UserRepository {
   }
 
   /**
-   * Deletes a User from the database.
+   * Hard deletes a User from the database.
    *
    * @param {string} id - The unique identifier of the User to delete.
    *
@@ -205,6 +156,59 @@ export class UserRepository {
   async delete(id: string): Promise<void> {
     await this.prisma.user.delete({
       where: { id: id },
+    });
+  }
+
+  /**
+   * Soft deletes a User from the database.
+   *
+   * @param {string} id - The unique identifier of the User to soft delete.
+   *
+   * @returns {Promise<void>} - A promise that resolves when the User has been soft deleted.
+   */
+  async deactivate(id: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: id },
+      data: { isActive: false, deletedAt: new Date(), updatedAt: new Date() },
+    });
+  }
+
+  /**
+   * Activates a User in the database.
+   *
+   * @param {string} id - The unique identifier of the User to activate.
+   *
+   * @returns {Promise<void>} - A promise that resolves when the User has been activated.
+   */
+  async activate(id: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: id },
+      data: { isActive: true, deletedAt: null, updatedAt: new Date() },
+    });
+  }
+
+  /**
+   * Updates the password reset token of an existing User in the database.
+   *
+   * @param {string} id - The unique identifier of the User to update.
+   * @param {string} tokenHash - The hash of the password reset token.
+   * @param {Date} expiresAt - The date and time when the password reset token expires.
+   *
+   * @returns {Promise<void>} - A promise that resolves when the User's password reset token has been updated.
+   *
+   * @throws {Prisma.NotFoundError} - Thrown if the User with the given id does not exist in the database.
+   */
+  async updatePasswordResetToken(
+    id: string,
+    tokenHash: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        passwordResetToken: tokenHash,
+        passwordResetTokenExpiresAt: expiresAt,
+      },
     });
   }
 }

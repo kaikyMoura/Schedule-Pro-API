@@ -20,12 +20,12 @@ exports.Prisma = Prisma
 exports.$Enums = {}
 
 /**
- * Prisma Client JS version: 6.8.2
- * Query Engine version: 2060c79ba17c6bb9f5823312b6f6b7f4a845738e
+ * Prisma Client JS version: 6.11.1
+ * Query Engine version: f40f79ec31188888a2e33acda0ecc8fd10a853a9
  */
 Prisma.prismaVersion = {
-  client: "6.8.2",
-  engine: "2060c79ba17c6bb9f5823312b6f6b7f4a845738e"
+  client: "6.11.1",
+  engine: "f40f79ec31188888a2e33acda0ecc8fd10a853a9"
 }
 
 Prisma.PrismaClientKnownRequestError = () => {
@@ -122,15 +122,37 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
 
 exports.Prisma.UserScalarFieldEnum = {
   id: 'id',
-  name: 'name',
   email: 'email',
   password: 'password',
   phone: 'phone',
-  photo: 'photo',
   role: 'role',
+  firstName: 'firstName',
+  lastName: 'lastName',
+  avatar: 'avatar',
+  dateOfBirth: 'dateOfBirth',
+  gender: 'gender',
+  address: 'address',
+  city: 'city',
+  state: 'state',
+  zipCode: 'zipCode',
+  country: 'country',
+  isActive: 'isActive',
+  isVerified: 'isVerified',
   verifiedAt: 'verifiedAt',
+  lastLoginAt: 'lastLoginAt',
+  timezone: 'timezone',
+  language: 'language',
+  currency: 'currency',
+  emailNotifications: 'emailNotifications',
+  smsNotifications: 'smsNotifications',
+  pushNotifications: 'pushNotifications',
+  passwordResetToken: 'passwordResetToken',
+  passwordResetTokenExpiresAt: 'passwordResetTokenExpiresAt',
+  verificationToken: 'verificationToken',
+  verificationTokenExpiresAt: 'verificationTokenExpiresAt',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
 };
 
 exports.Prisma.UserSessionScalarFieldEnum = {
@@ -139,31 +161,118 @@ exports.Prisma.UserSessionScalarFieldEnum = {
   refreshToken: 'refreshToken',
   userAgent: 'userAgent',
   ipAddress: 'ipAddress',
+  isActive: 'isActive',
   createdAt: 'createdAt',
-  expiresAt: 'expiresAt'
+  expiresAt: 'expiresAt',
+  updatedAt: 'updatedAt',
+  lastUsedAt: 'lastUsedAt'
+};
+
+exports.Prisma.NotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  appointmentId: 'appointmentId',
+  title: 'title',
+  message: 'message',
+  type: 'type',
+  channel: 'channel',
+  isRead: 'isRead',
+  readAt: 'readAt',
+  scheduledFor: 'scheduledFor',
+  sentAt: 'sentAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.AuditLogScalarFieldEnum = {
+  id: 'id',
+  tableName: 'tableName',
+  recordId: 'recordId',
+  action: 'action',
+  oldValues: 'oldValues',
+  newValues: 'newValues',
+  userId: 'userId',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PaymentScalarFieldEnum = {
+  id: 'id',
+  appointmentId: 'appointmentId',
+  userId: 'userId',
+  amount: 'amount',
+  currency: 'currency',
+  status: 'status',
+  paymentMethod: 'paymentMethod',
+  stripePaymentId: 'stripePaymentId',
+  transactionId: 'transactionId',
+  paidAt: 'paidAt',
+  refundedAt: 'refundedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.ReviewScalarFieldEnum = {
+  id: 'id',
+  appointmentId: 'appointmentId',
+  customerId: 'customerId',
+  staffId: 'staffId',
+  serviceId: 'serviceId',
+  rating: 'rating',
+  title: 'title',
+  comment: 'comment',
+  isApproved: 'isApproved',
+  isPublic: 'isPublic',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
 };
 
 exports.Prisma.AppointmentScalarFieldEnum = {
   id: 'id',
-  notes: 'notes',
-  date: 'date',
-  time: 'time',
+  scheduledDate: 'scheduledDate',
+  scheduledTime: 'scheduledTime',
+  startTime: 'startTime',
+  endTime: 'endTime',
+  timezone: 'timezone',
   status: 'status',
+  type: 'type',
+  notes: 'notes',
+  internalNotes: 'internalNotes',
   price: 'price',
+  currency: 'currency',
+  discount: 'discount',
+  finalPrice: 'finalPrice',
   customerId: 'customerId',
   staffId: 'staffId',
   serviceId: 'serviceId',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
 };
 
 exports.Prisma.ServiceItemScalarFieldEnum = {
   id: 'id',
-  type: 'type',
-  price: 'price',
-  duration: 'duration',
+  name: 'name',
+  description: 'description',
+  category: 'category',
+  basePrice: 'basePrice',
+  currency: 'currency',
+  durationMinutes: 'durationMinutes',
+  bufferMinutes: 'bufferMinutes',
+  isActive: 'isActive',
+  isOnline: 'isOnline',
+  maxAdvanceBooking: 'maxAdvanceBooking',
+  minAdvanceBooking: 'minAdvanceBooking',
+  color: 'color',
+  icon: 'icon',
+  tags: 'tags',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
 };
 
 exports.Prisma.StaffAvailabilityScalarFieldEnum = {
@@ -172,7 +281,13 @@ exports.Prisma.StaffAvailabilityScalarFieldEnum = {
   dayOfWeek: 'dayOfWeek',
   startTime: 'startTime',
   endTime: 'endTime',
-  createdAt: 'createdAt'
+  specificDate: 'specificDate',
+  isAvailable: 'isAvailable',
+  breakStartTime: 'breakStartTime',
+  breakEndTime: 'breakEndTime',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
 };
 
 exports.Prisma.StaffServiceScalarFieldEnum = {
@@ -180,13 +295,24 @@ exports.Prisma.StaffServiceScalarFieldEnum = {
   staffId: 'staffId',
   serviceId: 'serviceId',
   customPrice: 'customPrice',
-  active: 'active',
-  createdAt: 'createdAt'
+  customDuration: 'customDuration',
+  isActive: 'isActive',
+  isPreferred: 'isPreferred',
+  skillLevel: 'skillLevel',
+  experience: 'experience',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
 };
 
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
+};
+
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
 };
 
 exports.Prisma.QueryMode = {
@@ -198,22 +324,194 @@ exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
 };
+
+exports.Prisma.UserOrderByRelevanceFieldEnum = {
+  id: 'id',
+  email: 'email',
+  password: 'password',
+  phone: 'phone',
+  firstName: 'firstName',
+  lastName: 'lastName',
+  avatar: 'avatar',
+  address: 'address',
+  city: 'city',
+  state: 'state',
+  zipCode: 'zipCode',
+  country: 'country',
+  timezone: 'timezone',
+  language: 'language',
+  currency: 'currency',
+  passwordResetToken: 'passwordResetToken',
+  verificationToken: 'verificationToken'
+};
+
+exports.Prisma.UserSessionOrderByRelevanceFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  refreshToken: 'refreshToken',
+  userAgent: 'userAgent',
+  ipAddress: 'ipAddress'
+};
+
+exports.Prisma.NotificationOrderByRelevanceFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  appointmentId: 'appointmentId',
+  title: 'title',
+  message: 'message'
+};
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
+};
+
+exports.Prisma.AuditLogOrderByRelevanceFieldEnum = {
+  id: 'id',
+  tableName: 'tableName',
+  recordId: 'recordId',
+  userId: 'userId',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent'
+};
+
+exports.Prisma.PaymentOrderByRelevanceFieldEnum = {
+  id: 'id',
+  appointmentId: 'appointmentId',
+  userId: 'userId',
+  currency: 'currency',
+  stripePaymentId: 'stripePaymentId',
+  transactionId: 'transactionId'
+};
+
+exports.Prisma.ReviewOrderByRelevanceFieldEnum = {
+  id: 'id',
+  appointmentId: 'appointmentId',
+  customerId: 'customerId',
+  staffId: 'staffId',
+  serviceId: 'serviceId',
+  title: 'title',
+  comment: 'comment'
+};
+
+exports.Prisma.AppointmentOrderByRelevanceFieldEnum = {
+  id: 'id',
+  scheduledTime: 'scheduledTime',
+  timezone: 'timezone',
+  notes: 'notes',
+  internalNotes: 'internalNotes',
+  currency: 'currency',
+  customerId: 'customerId',
+  staffId: 'staffId',
+  serviceId: 'serviceId'
+};
+
+exports.Prisma.ServiceItemOrderByRelevanceFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  category: 'category',
+  currency: 'currency',
+  color: 'color',
+  icon: 'icon',
+  tags: 'tags'
+};
+
+exports.Prisma.StaffAvailabilityOrderByRelevanceFieldEnum = {
+  id: 'id',
+  staffId: 'staffId',
+  startTime: 'startTime',
+  endTime: 'endTime',
+  breakStartTime: 'breakStartTime',
+  breakEndTime: 'breakEndTime'
+};
+
+exports.Prisma.StaffServiceOrderByRelevanceFieldEnum = {
+  id: 'id',
+  staffId: 'staffId',
+  serviceId: 'serviceId'
+};
 exports.Role = exports.$Enums.Role = {
   ADMIN: 'ADMIN',
   STAFF: 'STAFF',
-  CUSTOMER: 'CUSTOMER'
+  CUSTOMER: 'CUSTOMER',
+  MANAGER: 'MANAGER'
+};
+
+exports.Gender = exports.$Enums.Gender = {
+  MALE: 'MALE',
+  FEMALE: 'FEMALE',
+  OTHER: 'OTHER'
+};
+
+exports.NotificationType = exports.$Enums.NotificationType = {
+  APPOINTMENT_CONFIRMED: 'APPOINTMENT_CONFIRMED',
+  APPOINTMENT_CANCELLED: 'APPOINTMENT_CANCELLED',
+  REMINDER: 'REMINDER',
+  CUSTOM: 'CUSTOM'
+};
+
+exports.NotificationChannel = exports.$Enums.NotificationChannel = {
+  EMAIL: 'EMAIL',
+  SMS: 'SMS',
+  PUSH: 'PUSH',
+  IN_APP: 'IN_APP'
+};
+
+exports.AuditAction = exports.$Enums.AuditAction = {
+  INSERT: 'INSERT',
+  UPDATE: 'UPDATE',
+  DELETE: 'DELETE'
+};
+
+exports.PaymentStatus = exports.$Enums.PaymentStatus = {
+  PENDING: 'PENDING',
+  PAID: 'PAID',
+  REFUNDED: 'REFUNDED',
+  CANCELLED: 'CANCELLED'
+};
+
+exports.PaymentMethod = exports.$Enums.PaymentMethod = {
+  CASH: 'CASH',
+  CARD: 'CARD',
+  PAYPAL: 'PAYPAL',
+  PIX: 'PIX'
 };
 
 exports.Status = exports.$Enums.Status = {
   CANCELLED: 'CANCELLED',
   CONFIRMED: 'CONFIRMED',
   COMPLETED: 'COMPLETED',
-  PENDING: 'PENDING'
+  PENDING: 'PENDING',
+  RESCHEDULED: 'RESCHEDULED',
+  NO_SHOW: 'NO_SHOW'
+};
+
+exports.AppointmentType = exports.$Enums.AppointmentType = {
+  REGULAR: 'REGULAR',
+  FOLLOW_UP: 'FOLLOW_UP',
+  CONSULTATION: 'CONSULTATION',
+  EMERGENCY: 'EMERGENCY'
+};
+
+exports.DayOfWeek = exports.$Enums.DayOfWeek = {
+  SUNDAY: 'SUNDAY',
+  MONDAY: 'MONDAY',
+  TUESDAY: 'TUESDAY',
+  WEDNESDAY: 'WEDNESDAY',
+  THURSDAY: 'THURSDAY',
+  FRIDAY: 'FRIDAY',
+  SATURDAY: 'SATURDAY'
 };
 
 exports.Prisma.ModelName = {
   User: 'User',
   UserSession: 'UserSession',
+  Notification: 'Notification',
+  AuditLog: 'AuditLog',
+  Payment: 'Payment',
+  Review: 'Review',
   Appointment: 'Appointment',
   ServiceItem: 'ServiceItem',
   StaffAvailability: 'StaffAvailability',

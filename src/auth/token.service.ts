@@ -1,12 +1,16 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { JwtPayload } from 'jsonwebtoken';
-import { TokenPayloadDto } from './dtos/token-payload.dto';
+import { TokenPayloadType } from './type/token-payload.type';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class TokenService {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) {}
 
   /**
    * Generates a JWT access token for the given payload.
@@ -18,15 +22,18 @@ export class TokenService {
    * @template T - A generic type that extends an object with id, name, and email properties.
    */
   async generateAccessToken(
-    payload: TokenPayloadDto,
+    payload: TokenPayloadType,
     expiresIn?: string,
   ): Promise<{ token: string; expiresIn: string }> {
     const token = await this.jwtService.signAsync(
       { id: payload.sub, email: payload.email, role: payload.role },
-      { expiresIn: expiresIn ?? process.env.JWT_ACCESS_EXPIRES },
+      { expiresIn: expiresIn ?? this.configService.get('JWT_ACCESS_EXPIRES') },
     );
 
-    return { token, expiresIn: expiresIn! ?? process.env.JWT_ACCESS_EXPIRES };
+    return {
+      token,
+      expiresIn: expiresIn! ?? this.configService.get('JWT_ACCESS_EXPIRES'),
+    };
   }
 
   /**
@@ -35,12 +42,16 @@ export class TokenService {
    * @returns {{ token: string; expiresIn: Date }} - An object containing the generated refresh token
    * and its expiry date, which is set to 7 days from the current date.
    */
-  generateRefreshToken(): { token: string; expiresIn: Date } {
-    const token = randomUUID();
+  generateRefreshToken(expiresIn?: string): {
+    token: string;
+    expiresIn: string;
+  } {
+    const hashedToken = createHash('sha256').update(randomUUID()).digest('hex');
 
-    const expiresIn = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-    return { token, expiresIn };
+    return {
+      token: hashedToken,
+      expiresIn: expiresIn ?? this.configService.get('JWT_REFRESH_EXPIRES')!,
+    };
   }
 
   /**
@@ -48,11 +59,11 @@ export class TokenService {
    *
    * @param token - The token to be verified.
    *
-   * @returns {Promise<TokenPayloadDto>} - A promise that resolves to the payload of the token.
+   * @returns {Promise<TokenPayloadType>} - A promise that resolves to the payload of the token.
    *
    * @throws {UnauthorizedException} - Thrown if the token is invalid or expired.
    */
-  async verifyToken(token: string): Promise<TokenPayloadDto> {
+  async verifyToken(token: string): Promise<TokenPayloadType> {
     try {
       return await this.jwtService.verifyAsync(token);
     } catch {
