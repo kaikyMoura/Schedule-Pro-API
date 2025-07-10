@@ -322,10 +322,10 @@ docker run -p 5000:5000 \
 
 ---
 
-### 10. 📝 Terms of Use
+## 📝 Terms of Use
 - **Non-commercial** project.
 - All rights related to user data and privacy are respected.
 - This project aims to serve as a learning and portfolio tool.
 
-#### Author 👨‍💻
+## Author 👨‍💻
 Kaiky Tupinambá - Fullstack developer
