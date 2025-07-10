@@ -2,11 +2,11 @@ import {
   CallHandler,
   ExecutionContext,
   Injectable,
-  LoggerService,
   NestInterceptor,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import { LoggerService } from '../logger/logger.service';
 import { CustomRequest } from '../types/custom-request';
 
 @Injectable()
@@ -31,23 +31,9 @@ export class LoggerInterceptor implements NestInterceptor {
     // Extract relevant information from the request
     const { method, url, body, query, params } = request;
 
-    // Log the user agent, IP address, and current timestamp
-    const userAgent = request.headers['user-agent'];
-    const ip = request.ip;
     const now = Date.now();
 
-    const user = request.body;
-    if (user) {
-      this.logger.log(`User Name: ${user.name}`);
-    }
-
-    this.logger.log(`[Request] ${method} ${url}`, {
-      ip,
-      userAgent,
-      body,
-      query,
-      params,
-    });
+    this.logger.log(`[Request] ${method} ${url}`);
 
     // Log the request body, query parameters, and route parameters
     if (process.env.NODE_ENV === 'development') {

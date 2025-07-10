@@ -1,9 +1,9 @@
-import { ExtractJwt, Strategy } from 'passport-jwt';
-import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { UserService } from 'src/user/user.service';
-import { TokenPayloadDto } from '../type/token-payload.type';
 import { ConfigService } from '@nestjs/config';
+import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { UserService } from 'src/user/user.service';
+import { TokenPayloadInput } from '../dtos/token-payload.type';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -37,9 +37,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * validation is successful.
    */
   async validate(
-    payload: TokenPayloadDto,
+    payload: TokenPayloadInput,
   ): Promise<{ id: string; email: string }> {
-    const user = await this.userService.retrieveById(payload.sub);
+    const user = await this.userService.findById(payload.sub);
 
     if (payload.email !== user.email) {
       throw new UnauthorizedException('Invalid or expired token');
@@ -47,6 +47,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     if (!user) throw new UnauthorizedException('Invalid or expired token');
 
-    return { id: user.id!, email: user.email };
+    return { id: user.id, email: user.email };
   }
 }

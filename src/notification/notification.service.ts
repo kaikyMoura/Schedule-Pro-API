@@ -34,7 +34,14 @@ export class NotificationService {
       configService.get('TWILIO_ACCOUNT_SID'),
       configService.get('TWILIO_AUTH_TOKEN'),
     );
-    this.sgMail.setApiKey(configService.get('SENDGRID_KEY')!);
+
+    // Initialize SendGrid
+    this.sgMail = sgMail;
+    const sendgridKey = configService.get<string>('SENDGRID_API_KEY');
+    if (sendgridKey) {
+      this.sgMail.setApiKey(sendgridKey);
+    }
+
     this.verifySid = configService.get('TWILIO_VERIFY_SERVICE_SID')!;
   }
 
@@ -122,6 +129,6 @@ export class NotificationService {
       ...(data.text && { text: data.text }),
     };
 
-    await sgMail.send(msg);
+    await this.sgMail.send(msg);
   }
 }

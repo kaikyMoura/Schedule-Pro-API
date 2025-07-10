@@ -1,6 +1,6 @@
 import { ObjectType } from '@nestjs/graphql';
 import { PaginatedResult } from 'src/common/factorys/pagination-result.facoctory';
-import { ServiceItemType } from './service-item.type';
+import { ServiceItemType } from './service-item.entity';
 
 /**
  * Paginated service items type

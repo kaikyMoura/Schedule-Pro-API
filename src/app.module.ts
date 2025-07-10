@@ -32,20 +32,20 @@ import graphqlConfig from './common/config/graphql.config';
 import jwtConfig from './common/config/jwt.config';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { GlobalGuard } from './common/guards/global.guard';
-import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { GlobalInterceptor } from './common/interceptors/global.interceptor';
 import { LoggerModule } from './common/logger/logger.module';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 import { CustomRequest } from './common/types/custom-request';
-import { ServiceItemDataLoader } from './graphql/loaders/service-item.dataloader';
-import { UserDataLoader } from './graphql/loaders/user.dataloader';
+import { ServiceItemDataLoader } from './serviceItem/dataloaders/service-item.loader';
+import { UserDataLoader } from './user/dataloader/user.loader';
 import { HashingModule } from './hashing/hashing.module';
 import { NotificationModule } from './notification/notification.module';
+import { ReviewModule } from './reviews/review.module';
 import { ReviewService } from './reviews/review.service';
 import { ServiceItemService } from './serviceItem/service-item.service';
 import { StaffAvailabilityModule } from './staff-availability/staff-availability.module';
 import { StaffServiceService } from './staff-service/staff-service.service';
 import { UserService } from './user/user.service';
-import { ReviewModule } from './reviews/review.module';
 
 @Module({
   imports: [
@@ -65,6 +65,7 @@ import { ReviewModule } from './reviews/review.module';
         JWT_REFRESH_EXPIRATION_TIME: Joi.string().default('7d'),
         REDIS_URL: Joi.string().optional(),
         SENDGRID_API_KEY: Joi.string().optional(),
+        SENDGRID_SENDER_EMAIL: Joi.string().optional(),
         TWILIO_ACCOUNT_SID: Joi.string().optional(),
         TWILIO_AUTH_TOKEN: Joi.string().optional(),
         THROTTLER_TTL: Joi.number().default(60),
@@ -105,9 +106,9 @@ import { ReviewModule } from './reviews/review.module';
       isGlobal: true,
       useFactory: (configService: ConfigService) => ({
         store: redisStore,
-        host: configService.get<string>('REDIS_HOST'),
-        port: configService.get<number>('REDIS_PORT'),
-        ttl: configService.get<number>('REDIS_TTL'),
+        host: configService.get<string>('REDIS_HOST', 'localhost'),
+        port: configService.get<number>('REDIS_PORT', 6379),
+        ttl: configService.get<number>('REDIS_TTL', 300),
       }),
     }),
     // GraphQL Configuration
@@ -174,9 +175,8 @@ import { ReviewModule } from './reviews/review.module';
     },
     {
       provide: APP_INTERCEPTOR,
-      useClass: ResponseInterceptor,
+      useClass: GlobalInterceptor, // Using global interceptor because the nest ignores the other interceptors and uses the last especified interceptor
     },
-
     {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,

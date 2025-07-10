@@ -12,10 +12,10 @@ import { InvalidCredentialsException } from 'src/common/exceptions/invalid-crede
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
 import { UserNotFoundException } from 'src/common/exceptions/user-not-found.exception';
 import { HashingService } from 'src/hashing/hashing.service';
-import { ChangePasswordInput } from './input/change-password.input';
-import { CreateUserInput } from './input/create-user.input';
-import { LoginUserInput } from './input/login-user.input';
-import { UpdateUserInput } from './input/update-user.input';
+import { ChangePasswordInput } from './dtos/change-password.input';
+import { CreateUserInput } from './dtos/create-user.input';
+import { LoginUserInput } from './dtos/login-user.input';
+import { UpdateUserInput } from './dtos/update-user.input';
 import { EmailSpecification } from './specs/email.spec';
 import { PasswordTokenSpecification } from './specs/password-token.spec';
 import { PhoneSpecification } from './specs/phone.spec';

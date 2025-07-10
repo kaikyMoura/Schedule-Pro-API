@@ -10,13 +10,14 @@ import {
   Status,
 } from 'prisma/app/generated/prisma/client';
 
+// Register enums with unique names to avoid conflicts
 registerEnumType(Status, {
   name: 'AppointmentStatus',
   description: 'Status of an appointment',
 });
 
 registerEnumType(PrismaAppointmentType, {
-  name: 'AppointmentType',
+  name: 'AppointmentTypeEnum',
   description: 'Type of appointment',
 });
 

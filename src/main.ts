@@ -1,10 +1,11 @@
+import { CACHE_MANAGER, CacheInterceptor } from '@nestjs/cache-manager';
 import {
   BadRequestException,
   ValidationPipe,
   VersioningType,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
@@ -13,12 +14,8 @@ import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
-import { AuditInterceptor } from './common/interceptors/audit.interceptor';
-import { LoggerInterceptor } from './common/interceptors/logger.interceptor';
-import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
-import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { GlobalInterceptor } from './common/interceptors/global.interceptor';
 import { LoggerService } from './common/logger/logger.service';
-import { PrismaService } from './prisma/prisma.service';
 
 async function bootstrap() {
   try {
@@ -74,10 +71,8 @@ async function bootstrap() {
     app.useGlobalFilters(new GlobalExceptionFilter());
     // Global interceptors
     app.useGlobalInterceptors(
-      new LoggerInterceptor(logger),
-      new AuditInterceptor(app.get(PrismaService)),
-      new ResponseInterceptor(),
-      new MetricsInterceptor(configService),
+      app.get(GlobalInterceptor),
+      new CacheInterceptor(app.get(CACHE_MANAGER), app.get(Reflector)),
     );
     app.enableVersioning({
       type: VersioningType.URI,

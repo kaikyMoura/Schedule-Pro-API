@@ -1,0 +1,485 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+input AppointmentFilterInput {
+  createdAfter: DateTime
+  createdBefore: DateTime
+  currency: String
+  isDeleted: Boolean
+  price: Float
+  scheduledDate: DateTime
+  scheduledTime: String
+  search: String
+  serviceItemId: String
+  staffId: String
+  status: AppointmentStatus
+  type: AppointmentTypeEnum
+  userId: String
+}
+
+input AppointmentOrderInput {
+  orderByCreatedAt: SortOrder
+  orderByCurrency: SortOrder
+  orderByDeletedAt: SortOrder
+  orderByPrice: SortOrder
+  orderByScheduledDate: SortOrder
+  orderByScheduledTime: SortOrder
+  orderByStatus: SortOrder
+  orderByType: SortOrder
+}
+
+input AppointmentPaginationInput {
+  limit: Float = 20
+  offset: Float! = 0
+  orderBy: AppointmentOrderInput
+  orderDirection: SortOrder! = ASC
+  page: Float = 1
+}
+
+type AppointmentResponse {
+  data: AppointmentType
+  error: String
+  message: String
+  success: Boolean!
+}
+
+"""Status of an appointment"""
+enum AppointmentStatus {
+  CANCELLED
+  COMPLETED
+  CONFIRMED
+  NO_SHOW
+  PENDING
+  RESCHEDULED
+}
+
+type AppointmentType {
+  createdAt: DateTime
+  currency: String!
+  deletedAt: DateTime
+  discount: Int!
+  endTime: DateTime!
+  finalPrice: Float!
+  id: String!
+  notes: String
+  price: Float!
+  scheduledDate: DateTime!
+  scheduledTime: String!
+  startTime: DateTime!
+  status: AppointmentStatus!
+  timezone: String!
+  type: AppointmentTypeEnum!
+  updatedAt: DateTime
+}
+
+"""Type of appointment"""
+enum AppointmentTypeEnum {
+  CONSULTATION
+  EMERGENCY
+  FOLLOW_UP
+  REGULAR
+}
+
+input CreateAppointmentInput {
+  currency: String!
+  customerId: String!
+  discount: Int!
+  endTime: DateTime!
+  finalPrice: Float!
+  notes: String
+  price: Float!
+  scheduledDate: DateTime!
+  scheduledTime: String!
+  serviceId: String!
+  staffId: String!
+  startTime: DateTime!
+  status: AppointmentStatus!
+  timezone: String!
+  type: AppointmentTypeEnum!
+}
+
+input CreateReviewInput {
+  appointmentId: String!
+  comment: String
+  customerId: String!
+  isApproved: Boolean
+  isPublic: Boolean
+  rating: Int!
+  serviceId: String!
+  staffId: String
+  title: String
+}
+
+input CreateServiceItemInput {
+  basePrice: Float!
+  bufferMinutes: Int!
+  category: String!
+  color: String
+  currency: String!
+  description: String!
+  durationMinutes: Int!
+  icon: String
+  isActive: Boolean!
+  isOnline: Boolean!
+  maxAdvanceBooking: Int
+  minAdvanceBooking: Int
+  name: String!
+  tags: [String!]
+}
+
+input CreateUserInput {
+  address: String
+  avatar: String
+  city: String
+  country: String
+  currency: String
+  dateOfBirth: DateTime
+  email: String!
+  firstName: String!
+  gender: String
+  language: String
+  lastName: String!
+  password: String!
+  phone: String!
+  role: String! = "CUSTOMER"
+  state: String
+  timezone: String
+  zipCode: String
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+input LoginUserInput {
+  email: String!
+  password: String!
+}
+
+type Mutation {
+  """Activate a user by their ID."""
+  activateUser(id: ID!): UserResponse!
+  changeAppointmentStatus(id: String!, status: String!): AppointmentResponse!
+  createAppointment(input: CreateAppointmentInput!): AppointmentResponse!
+  createReview(input: CreateReviewInput!): ReviewsResponse!
+  createServiceItem(input: CreateServiceItemInput!): ServiceItemResponse!
+
+  """
+  Deactivate a user by their ID. Users can only deactivate themselves unless they are admin or manager.
+  """
+  deactivateUser(id: ID!): UserResponse!
+  deleteAppointment(id: String!): AppointmentResponse!
+  deleteServiceItem(id: String!): ServiceItemResponse!
+
+  """Delete a user by their ID. Only admins and managers can delete users."""
+  deleteUser(id: ID!): UserResponse!
+  forgotPassword(email: String!): UserResponse!
+  login(input: LoginUserInput!): UserResponse!
+  logout: UserResponse!
+  refreshToken: UserResponse!
+  register(input: CreateUserInput!): UserResponse!
+  resetPassword(newPassword: String!, token: String!): UserResponse!
+  sendOtp(phone: String!): UserResponse!
+  sendVerificationEmail: UserResponse!
+  updateAppointment(id: String!, input: UpdateAppointmentInput!): AppointmentResponse!
+  updateServiceItem(id: String!, input: UpdateServiceItemInput!): ServiceItemResponse!
+
+  """
+  Update a user by their ID. Users can only update themselves unless they are admin or manager.
+  """
+  updateUser(id: ID!, input: UpdateUserInput!): UserResponse!
+  verifyEmail(token: String!): UserResponse!
+  verifyOtp(code: String!, phone: String!): UserResponse!
+}
+
+type PaginatedAppointments {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  nodes: [AppointmentType!]!
+  totalCount: Int!
+}
+
+type PaginatedReviews {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  nodes: [ReviewType!]!
+  totalCount: Int!
+}
+
+type PaginatedServiceItems {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  nodes: [ServiceItemType!]!
+  totalCount: Int!
+}
+
+type PaginatedUsers {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  nodes: [UserType!]!
+  totalCount: Int!
+}
+
+input PaginationInput {
+  limit: Float = 20
+  offset: Float! = 0
+  orderDirection: SortOrder! = ASC
+  page: Float = 1
+}
+
+type Query {
+  appointment(id: String!): AppointmentResponse!
+  appointmentById(id: String!): AppointmentResponse!
+  appointments(filter: AppointmentFilterInput, orderBy: AppointmentOrderInput, pagination: AppointmentPaginationInput): PaginatedAppointments!
+
+  """Get the current user"""
+  me: UserResponse!
+  review(id: String!): ReviewsResponse!
+  reviews(filter: ReviewsFilterInput, orderBy: ReviewsOrderInput, pagination: PaginationInput): PaginatedReviews!
+  serviceItem(id: String!): ServiceItemType!
+  serviceItems(filter: ServiceItemFilterInput, orderBy: ServiceItemOrderInput, pagination: PaginationInput): PaginatedServiceItems!
+
+  """Get a user by their ID"""
+  user(id: String!): UserResponse!
+
+  """
+  Get all users. Or get paginated users by role. Or get paginated users by filter.
+  """
+  users(filter: UserFilterInput, orderBy: UserOrderInput, pagination: PaginationInput): PaginatedUsers!
+}
+
+type ReviewType {
+  appointmentId: String
+  comment: String
+  createdAt: DateTime!
+  customerId: String
+  deletedAt: DateTime
+  id: ID!
+  isApproved: Boolean!
+  isPublic: Boolean!
+  rating: Int!
+  serviceId: String!
+  staffId: String
+  title: String
+  updatedAt: DateTime
+}
+
+input ReviewsFilterInput {
+  createdAfter: DateTime
+  createdBefore: DateTime
+  customerId: String
+  isApproved: Boolean
+  isDeleted: Boolean
+  isPublic: Boolean
+  rating: Float
+  search: String
+  serviceId: String
+  staffId: String
+}
+
+input ReviewsOrderInput {
+  createdAt: SortOrder
+  rating: SortOrder
+  updatedAt: SortOrder
+}
+
+type ReviewsResponse {
+  data: ReviewType
+  error: String
+  message: String
+  success: Boolean!
+}
+
+"""User role in the system"""
+enum Role {
+  ADMIN
+  CUSTOMER
+  MANAGER
+  STAFF
+}
+
+input ServiceItemFilterInput {
+  category: String
+  createdAfter: DateTime
+  createdBefore: DateTime
+  isActive: Boolean
+  isDeleted: Boolean
+  isOnline: Boolean
+  search: String
+}
+
+input ServiceItemOrderInput {
+  orderByBasePrice: SortOrder
+  orderByBufferMinutes: SortOrder
+  orderByCategory: SortOrder
+  orderByCreatedAt: SortOrder
+  orderByCurrency: SortOrder
+  orderByDeletedAt: SortOrder
+  orderByDurationMinutes: SortOrder
+  orderByIsActive: SortOrder
+  orderByIsOnline: SortOrder
+  orderByName: SortOrder
+}
+
+type ServiceItemResponse {
+  data: ServiceItemType
+  error: String
+  message: String
+  success: Boolean!
+}
+
+type ServiceItemType {
+  appointments: [AppointmentType!]!
+  basePrice: Float!
+  bufferMinutes: Int!
+  category: String!
+  color: String
+  createdAt: DateTime
+  currency: String!
+  customers: [UserType!]!
+  deletedAt: DateTime
+  description: String!
+  durationMinutes: Int!
+  icon: String
+  id: String!
+  isActive: Boolean!
+  isOnline: Boolean!
+  maxAdvanceBooking: Int
+  minAdvanceBooking: Int
+  name: String!
+  reviews: [ReviewType!]!
+  staff: [UserType!]!
+  staffServices: [StaffServiceType!]!
+  tags: [String!]
+  updatedAt: DateTime
+}
+
+"""Sort order"""
+enum SortOrder {
+  ASC
+  DESC
+}
+
+type StaffServiceType {
+  createdAt: DateTime
+  customDuration: Int
+  customPrice: Float
+  experience: Int
+  id: String!
+  isActive: Boolean!
+  isPreferred: Boolean!
+  serviceId: String!
+  skillLevel: Int
+  staffId: String!
+  updatedAt: DateTime
+}
+
+input UpdateAppointmentInput {
+  createdAt: DateTime
+  currency: String
+  deletedAt: DateTime
+  discount: Int
+  endTime: DateTime
+  finalPrice: Float
+  notes: String
+  price: Float
+  scheduledDate: DateTime
+  scheduledTime: String
+  startTime: DateTime
+  status: AppointmentStatus
+  timezone: String
+  type: AppointmentTypeEnum
+  updatedAt: DateTime
+}
+
+input UpdateServiceItemInput {
+  basePrice: Float
+  bufferMinutes: Int
+  category: String
+  color: String
+  currency: String
+  description: String
+  durationMinutes: Int
+  icon: String
+  isActive: Boolean
+  isOnline: Boolean
+  maxAdvanceBooking: Int
+  minAdvanceBooking: Int
+  name: String
+  tags: [String!]
+}
+
+input UpdateUserInput {
+  address: String
+  avatar: String
+  city: String
+  country: String
+  currency: String
+  dateOfBirth: DateTime
+  email: String
+  firstName: String
+  gender: String
+  isActive: Boolean
+  language: String
+  lastName: String
+  phone: String
+  role: String = "CUSTOMER"
+  state: String
+  timezone: String
+  verificationToken: String
+  zipCode: String
+}
+
+input UserFilterInput {
+  createdAfter: DateTime
+  createdBefore: DateTime
+  isActive: Boolean
+  isDeleted: Boolean
+  isVerified: Boolean
+  role: Role
+  search: String
+}
+
+input UserOrderInput {
+  orderByCity: SortOrder
+  orderByCountry: SortOrder
+  orderByCreatedAt: SortOrder
+  orderByDeletedAt: SortOrder
+  orderByName: SortOrder
+  orderByState: SortOrder
+}
+
+type UserResponse {
+  appointmentCount: Int!
+  averageRating: Float!
+  customerAppointments: [AppointmentType!]!
+  data: UserType
+  error: String
+  message: String
+  staffAppointments: [AppointmentType!]!
+  staffReceivedReviews: [ReviewType!]!
+  success: Boolean!
+  totalReviews: Int!
+  userReviews: [ReviewType!]!
+}
+
+type UserType {
+  address: String
+  avatar: String
+  city: String
+  country: String
+  createdAt: DateTime
+  dateOfBirth: DateTime
+  deletedAt: DateTime
+  email: String!
+  firstName: String!
+  gender: String
+  id: String!
+  lastName: String!
+  phone: String!
+  state: String
+  updatedAt: DateTime
+  zipCode: String
+}

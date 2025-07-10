@@ -11,7 +11,7 @@ import { UserService } from 'src/user/user.service';
 import { WithServiceItemIdSpec } from './specs/with-service-item-id.spec';
 import { WithStaffIdSpec } from './specs/with-staff-id.spec';
 import { StaffServiceRepository } from './staff-service.repository';
-import { StaffServiceType } from './type/staff-service.type';
+import { StaffServiceType } from './types/staff-service.entity';
 
 @Injectable()
 export class StaffServiceService {

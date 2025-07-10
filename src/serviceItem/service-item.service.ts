@@ -1,19 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, ServiceItem } from 'prisma/app/generated/prisma/client';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
-import { UserService } from 'src/user/user.service';
-import { ServiceItemRepository } from './service-item.repository';
-import { ServiceItemType } from './type/service-item.type';
+import { Specification } from 'src/common/specs/specification.interface';
 import { CreateServiceItemInput } from './dtos/create-service-item.input';
 import { UpdateServiceItemInput } from './dtos/update-service-item.dto';
-import { Specification } from 'src/common/specs/specification.interface';
+import { ServiceItemRepository } from './service-item.repository';
+import { ServiceItemType } from './type/service-item.entity';
 
 @Injectable()
 export class ServiceItemService {
-  constructor(
-    private readonly serviceItemRepository: ServiceItemRepository,
-    private readonly userService: UserService,
-  ) {}
+  constructor(private readonly serviceItemRepository: ServiceItemRepository) {}
 
   /**
    * Maps a ServiceItem entity to a ServiceItemType object.

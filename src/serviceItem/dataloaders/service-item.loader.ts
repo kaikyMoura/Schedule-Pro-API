@@ -11,10 +11,10 @@ import { IsPublicReviewSpec } from 'src/reviews/specs/is-public.spec';
 import { WithServiceItemsSpec as WithServiceItemsSpecReview } from 'src/reviews/specs/with-service-items.spec';
 import { ServiceItemService } from 'src/serviceItem/service-item.service';
 import { WithServiceItemsSpec as WithServiceItemsSpecServiceItem } from 'src/serviceItem/specs/with-service-items.spec';
-import { ServiceItemType } from 'src/serviceItem/type/service-item.type';
+import { ServiceItemType } from 'src/serviceItem/type/service-item.entity';
 import { WithServiceItemsSpec as WithServiceItemsSpecStaffService } from 'src/staff-service/specs/with-service-items.spec';
 import { StaffServiceService } from 'src/staff-service/staff-service.service';
-import { StaffServiceType } from 'src/staff-service/type/staff-service.type';
+import { StaffServiceType } from 'src/staff-service/types/staff-service.entity';
 import { RoleSpecification } from 'src/user/specs/role.spec';
 import { UserService } from 'src/user/user.service';
 

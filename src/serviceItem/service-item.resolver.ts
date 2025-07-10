@@ -6,12 +6,11 @@ import {
   ResolveField,
   Resolver,
 } from '@nestjs/graphql';
-import { ServiceItem } from 'prisma/app/generated/prisma/client';
 import { AppointmentType } from 'src/appointment/types/appointment.entity';
 import { PaginationInput } from 'src/common/types/pagination.input';
-import { ServiceItemDataLoader } from 'src/graphql/loaders/service-item.dataloader';
+import { ServiceItemDataLoader } from 'src/serviceItem/dataloaders/service-item.loader';
 import { ReviewType } from 'src/reviews/types/review.entity';
-import { StaffServiceType } from 'src/staff-service/type/staff-service.type';
+import { StaffServiceType } from 'src/staff-service/types/staff-service.entity';
 import { UserType } from 'src/user/type/user.entity';
 import { CreateServiceItemInput } from './dtos/create-service-item.input';
 import { ServiceItemOrderInput } from './dtos/service-item-order.input';
@@ -20,9 +19,9 @@ import { ServiceItemService } from './service-item.service';
 import { PaginatedServiceItems } from './type/paginated-services-items.type';
 import { ServiceItemFilterInput } from './type/service-item-filter.input';
 import { ServiceItemResponse } from './type/service-item-response.type';
-import { ServiceItemType } from './type/service-item.type';
+import { ServiceItemType } from './type/service-item.entity';
 
-@Resolver()
+@Resolver(() => ServiceItemType)
 export class ServiceItemResolver {
   constructor(
     private readonly serviceItemService: ServiceItemService,
@@ -112,7 +111,7 @@ export class ServiceItemResolver {
 
   @ResolveField(() => [AppointmentType], { name: 'appointments' })
   async getAppointments(
-    @Parent() serviceItem: ServiceItem,
+    @Parent() serviceItem: ServiceItemType,
   ): Promise<AppointmentType[]> {
     return this.serviceItemDataLoader
       .createServiceItemAppointmentsLoader()
@@ -120,7 +119,9 @@ export class ServiceItemResolver {
   }
 
   @ResolveField(() => [ReviewType], { name: 'reviews' })
-  async getReviews(@Parent() serviceItem: ServiceItem): Promise<ReviewType[]> {
+  async getReviews(
+    @Parent() serviceItem: ServiceItemType,
+  ): Promise<ReviewType[]> {
     return this.serviceItemDataLoader
       .createServiceItemReviewsLoader()
       .load(serviceItem.id);
@@ -128,7 +129,7 @@ export class ServiceItemResolver {
 
   @ResolveField(() => [StaffServiceType], { name: 'staffServices' })
   async getStaffServices(
-    @Parent() serviceItem: ServiceItem,
+    @Parent() serviceItem: ServiceItemType,
   ): Promise<StaffServiceType[]> {
     return await this.serviceItemDataLoader
       .createServiceItemStaffServicesLoader()
@@ -136,14 +137,16 @@ export class ServiceItemResolver {
   }
 
   @ResolveField(() => [UserType], { name: 'staff' })
-  async getStaff(@Parent() serviceItem: ServiceItem): Promise<UserType[]> {
+  async getStaff(@Parent() serviceItem: ServiceItemType): Promise<UserType[]> {
     return this.serviceItemDataLoader
       .createServiceItemStaffLoader()
       .load(serviceItem.id);
   }
 
   @ResolveField(() => [UserType], { name: 'customers' })
-  async getCustomers(@Parent() serviceItem: ServiceItem): Promise<UserType[]> {
+  async getCustomers(
+    @Parent() serviceItem: ServiceItemType,
+  ): Promise<UserType[]> {
     return await this.serviceItemDataLoader
       .createServiceItemCustomersLoader()
       .load(serviceItem.id);

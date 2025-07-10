@@ -1,6 +1,6 @@
 import { ObjectType } from '@nestjs/graphql';
 import { MutationResponseType } from 'src/common/factorys/mutation-response.factory';
-import { ServiceItemType } from './service-item.type';
+import { ServiceItemType } from './service-item.entity';
 
 /**
  * ServiceItem response type

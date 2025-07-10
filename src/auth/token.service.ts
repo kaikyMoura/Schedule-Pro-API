@@ -1,9 +1,9 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHash, randomUUID } from 'crypto';
 import { JwtPayload } from 'jsonwebtoken';
-import { TokenPayloadType } from './type/token-payload.type';
-import { ConfigService } from '@nestjs/config';
+import { TokenPayloadInput } from './dtos/token-payload.type';
 
 @Injectable()
 export class TokenService {
@@ -22,7 +22,7 @@ export class TokenService {
    * @template T - A generic type that extends an object with id, name, and email properties.
    */
   async generateAccessToken(
-    payload: TokenPayloadType,
+    payload: TokenPayloadInput,
     expiresIn?: string,
   ): Promise<{ token: string; expiresIn: string }> {
     const token = await this.jwtService.signAsync(
@@ -63,7 +63,7 @@ export class TokenService {
    *
    * @throws {UnauthorizedException} - Thrown if the token is invalid or expired.
    */
-  async verifyToken(token: string): Promise<TokenPayloadType> {
+  async verifyToken(token: string): Promise<TokenPayloadInput> {
     try {
       return await this.jwtService.verifyAsync(token);
     } catch {

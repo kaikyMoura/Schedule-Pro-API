@@ -1,10 +1,10 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import {
-  AppointmentType,
   NotificationChannel,
   NotificationType as PrismaNotificationType,
 } from 'prisma/app/generated/prisma/client';
 import { UserType } from 'src/user/type/user.entity';
+import { AppointmentType } from 'src/appointment/types/appointment.entity';
 
 @ObjectType()
 export class NotificationType {

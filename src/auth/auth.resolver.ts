@@ -1,17 +1,18 @@
 import { UnauthorizedException, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import { Public } from 'src/common/decorators/public.decorator';
-import { MutationResponse } from 'src/graphql/type/mutation-response.type';
-import { CreateUserInput } from 'src/user/input/create-user.input';
+import { CustomRequest } from 'src/common/types/custom-request';
+import { NotificationService } from 'src/notification/notification.service';
+import { CurrentUser } from 'src/user/decorators/current-user.decorator';
+import { CreateUserInput } from 'src/user/dtos/create-user.input';
+import { LoginUserInput } from 'src/user/dtos/login-user.input';
+import { UserResponse } from 'src/user/type/user-response.type';
+import { UserType } from 'src/user/type/user.entity';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
-import { LoginUserInput } from 'src/user/input/login-user.input';
-import { CustomRequest } from 'src/common/types/custom-request';
-import { CurrentUser } from 'src/user/decorators/current-user.decorator';
-import { NotificationService } from 'src/notification/notification.service';
 
-@Resolver()
+@Resolver(() => UserType)
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AuthResolver {
   constructor(
@@ -20,10 +21,8 @@ export class AuthResolver {
   ) {}
 
   @Public()
-  @Mutation(() => MutationResponse, { name: 'register' })
-  async register(
-    @Args('input') input: CreateUserInput,
-  ): Promise<MutationResponse> {
+  @Mutation(() => UserResponse, { name: 'register' })
+  async register(@Args('input') input: CreateUserInput): Promise<UserResponse> {
     const user = await this.authService.register(input);
     return {
       success: true,
@@ -33,8 +32,8 @@ export class AuthResolver {
   }
 
   @Public()
-  @Mutation(() => MutationResponse, { name: 'login' })
-  async login(@Args('input') input: LoginUserInput): Promise<MutationResponse> {
+  @Mutation(() => UserResponse, { name: 'login' })
+  async login(@Args('input') input: LoginUserInput): Promise<UserResponse> {
     const data = await this.authService.login(input);
 
     return {
@@ -44,10 +43,10 @@ export class AuthResolver {
     };
   }
 
-  @Mutation(() => MutationResponse, { name: 'logout' })
+  @Mutation(() => UserResponse, { name: 'logout' })
   async logout(
     @CurrentUser() currentUser: CustomRequest,
-  ): Promise<MutationResponse> {
+  ): Promise<UserResponse> {
     await this.authService.logout(currentUser.user.sub);
     return {
       success: true,
@@ -55,10 +54,10 @@ export class AuthResolver {
     };
   }
 
-  @Mutation(() => MutationResponse, { name: 'refreshToken' })
+  @Mutation(() => UserResponse, { name: 'refreshToken' })
   async refreshToken(
     @CurrentUser() currentUser: CustomRequest,
-  ): Promise<MutationResponse> {
+  ): Promise<UserResponse> {
     const refreshToken = currentUser.cookies?.refreshToken;
     if (!refreshToken) {
       throw new UnauthorizedException('No refresh token provided');
@@ -72,10 +71,8 @@ export class AuthResolver {
     };
   }
 
-  @Mutation(() => MutationResponse, { name: 'forgotPassword' })
-  async forgotPassword(
-    @Args('email') email: string,
-  ): Promise<MutationResponse> {
+  @Mutation(() => UserResponse, { name: 'forgotPassword' })
+  async forgotPassword(@Args('email') email: string): Promise<UserResponse> {
     await this.authService.forgotPassword(email);
     return {
       success: true,
@@ -83,11 +80,11 @@ export class AuthResolver {
     };
   }
 
-  @Mutation(() => MutationResponse, { name: 'resetPassword' })
+  @Mutation(() => UserResponse, { name: 'resetPassword' })
   async resetPassword(
     @Args('token') token: string,
     @Args('newPassword') newPassword: string,
-  ): Promise<MutationResponse> {
+  ): Promise<UserResponse> {
     await this.authService.resetPassword(token, newPassword);
     return {
       success: true,
@@ -96,10 +93,10 @@ export class AuthResolver {
   }
 
   @Public()
-  @Mutation(() => MutationResponse, { name: 'sendVerificationEmail' })
+  @Mutation(() => UserResponse, { name: 'sendVerificationEmail' })
   async sendVerificationEmail(
     @CurrentUser() currentUser: CustomRequest,
-  ): Promise<MutationResponse> {
+  ): Promise<UserResponse> {
     await this.authService.sendVerificationEmail(currentUser.user.email);
     return {
       success: true,
@@ -108,8 +105,8 @@ export class AuthResolver {
   }
 
   @Public()
-  @Mutation(() => MutationResponse, { name: 'verifyEmail' })
-  async verifyEmail(@Args('token') token: string): Promise<MutationResponse> {
+  @Mutation(() => UserResponse, { name: 'verifyEmail' })
+  async verifyEmail(@Args('token') token: string): Promise<UserResponse> {
     await this.authService.verifyEmail(token);
     return {
       success: true,
@@ -118,8 +115,8 @@ export class AuthResolver {
   }
 
   @Public()
-  @Mutation(() => MutationResponse, { name: 'sendOtp' })
-  async sendOtp(@Args('phone') phone: string): Promise<MutationResponse> {
+  @Mutation(() => UserResponse, { name: 'sendOtp' })
+  async sendOtp(@Args('phone') phone: string): Promise<UserResponse> {
     const data = await this.notificationService.sendVerificationCode(phone);
     return {
       success: true,
@@ -128,11 +125,11 @@ export class AuthResolver {
   }
 
   @Public()
-  @Mutation(() => MutationResponse, { name: 'verifyOtp' })
+  @Mutation(() => UserResponse, { name: 'verifyOtp' })
   async verifyOtp(
     @Args('phone') phone: string,
     @Args('code') code: string,
-  ): Promise<MutationResponse> {
+  ): Promise<UserResponse> {
     const data = await this.notificationService.checkVerificationCode(
       phone,
       code,

@@ -1,7 +1,9 @@
 import { Field, Float, InputType, Int } from '@nestjs/graphql';
 import { IsOptional } from 'class-validator';
-import { AppointmentType, Status } from 'prisma/app/generated/prisma/client';
-import { AppointmentType as PrismaAppointmentType } from '../types/appointment.entity';
+import {
+  Status,
+  AppointmentType as PrismaAppointmentType,
+} from 'prisma/app/generated/prisma/client';
 
 @InputType()
 export class UpdateAppointmentInput {
@@ -31,7 +33,7 @@ export class UpdateAppointmentInput {
 
   @IsOptional()
   @Field(() => PrismaAppointmentType, { nullable: true })
-  type?: AppointmentType;
+  type?: PrismaAppointmentType;
 
   @IsOptional()
   @Field(() => String, { nullable: true })

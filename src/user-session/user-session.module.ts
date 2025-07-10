@@ -5,6 +5,6 @@ import { UserSessionService } from './user-session.service';
 
 @Module({
   providers: [UserSessionRepository, PrismaService, UserSessionService],
-  exports: [UserSessionRepository],
+  exports: [UserSessionService],
 })
 export class UserSessionModule {}

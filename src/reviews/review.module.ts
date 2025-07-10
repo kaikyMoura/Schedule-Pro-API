@@ -6,5 +6,6 @@ import { ReviewResolver } from './review.resolver';
 
 @Module({
   providers: [ReviewService, ReviewRepository, ReviewResolver, PrismaService],
+  exports: [ReviewService],
 })
 export class ReviewModule {}

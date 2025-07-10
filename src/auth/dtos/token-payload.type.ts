@@ -1,12 +1,12 @@
-import { Field, ObjectType } from '@nestjs/graphql';
+import { Field, InputType } from '@nestjs/graphql';
 import { Role } from 'prisma/app/generated/prisma/client';
 
-@ObjectType()
-export class TokenPayloadType {
-  @Field(() => String)
+@InputType()
+export class TokenPayloadInput {
+  @Field(() => String, { nullable: false })
   sub: string;
 
-  @Field(() => String)
+  @Field(() => String, { nullable: false })
   sid: string;
 
   @Field(() => String, { nullable: true })

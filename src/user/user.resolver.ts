@@ -1,5 +1,4 @@
-import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
-import { UnauthorizedException, UseInterceptors } from '@nestjs/common';
+import { UnauthorizedException } from '@nestjs/common';
 import {
   Args,
   Context,
@@ -12,7 +11,7 @@ import {
   ResolveField,
   Resolver,
 } from '@nestjs/graphql';
-import { Role, User } from 'prisma/app/generated/prisma/client';
+import { Role } from 'prisma/app/generated/prisma/client';
 import { AppointmentType } from 'src/appointment/types/appointment.entity';
 import { CustomRequest } from 'src/common/types/custom-request';
 import { PaginationInput } from 'src/common/types/pagination.input';
@@ -20,11 +19,12 @@ import { GqlContext } from 'src/graphql/gql-context.interface';
 import { ReviewType } from 'src/reviews/types/review.entity';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Roles } from './decorators/role.decorator';
-import { UpdateUserInput } from './input/update-user.input';
-import { UserFilterInput } from './input/user-filter.input';
-import { UserOrderInput } from './input/user-order.input';
+import { UpdateUserInput } from './dtos/update-user.input';
+import { UserFilterInput } from './dtos/user-filter.input';
+import { UserOrderInput } from './dtos/user-order.input';
 import { PaginatedUsers } from './type/paginatedUsers.type';
 import { UserResponse } from './type/user-response.type';
+import { UserType } from './type/user.entity';
 import { UserService } from './user.service';
 
 @Resolver(() => UserResponse)
@@ -36,8 +36,6 @@ export class UserResolver {
     description:
       'Get all users. Or get paginated users by role. Or get paginated users by filter.',
   })
-  @UseInterceptors(CacheInterceptor)
-  @CacheTTL(300)
   async users(
     @CurrentUser() currentUser: CustomRequest,
     @Args('filter', { nullable: true }) filter?: UserFilterInput,
@@ -186,7 +184,7 @@ export class UserResolver {
 
   @ResolveField(() => [AppointmentType], { name: 'customerAppointments' })
   async customerAppointments(
-    @Parent() user: User,
+    @Parent() user: UserType,
     @Context() context: GqlContext,
   ): Promise<AppointmentType[]> {
     const loader = context.userDataLoader.createUserAppointmentsLoader();
@@ -195,7 +193,7 @@ export class UserResolver {
 
   @ResolveField(() => [AppointmentType], { name: 'staffAppointments' })
   async staffAppointments(
-    @Parent() user: User,
+    @Parent() user: UserType,
     @Context() context: GqlContext,
   ): Promise<AppointmentType[]> {
     // Fetch appointments for the staff
@@ -205,7 +203,7 @@ export class UserResolver {
 
   @ResolveField(() => [ReviewType], { name: 'userReviews' })
   async reviews(
-    @Parent() user: User,
+    @Parent() user: UserType,
     @Context() context: GqlContext,
   ): Promise<ReviewType[]> {
     const loader = context.userDataLoader.createUserReviewsLoader();
@@ -214,7 +212,7 @@ export class UserResolver {
 
   @ResolveField(() => [ReviewType], { name: 'staffReceivedReviews' })
   async receivedReviews(
-    @Parent() user: User,
+    @Parent() user: UserType,
     @Context() context: GqlContext,
   ): Promise<ReviewType[]> {
     const loader = context.userDataLoader.createStaffReceivedReviewsLoader();
@@ -223,7 +221,7 @@ export class UserResolver {
 
   @ResolveField(() => Int, { name: 'appointmentCount' })
   async appointmentCount(
-    @Parent() user: User,
+    @Parent() user: UserType,
     @Context() context: GqlContext,
   ): Promise<number> {
     const loader = context.userDataLoader.createUserAppointmentsCountLoader();
@@ -232,7 +230,7 @@ export class UserResolver {
 
   @ResolveField(() => Float, { name: 'averageRating' })
   async averageRating(
-    @Parent() user: User,
+    @Parent() user: UserType,
     @Context() context: GqlContext,
   ): Promise<string> {
     const loader = context.userDataLoader.createUserReviewsLoader();
@@ -247,7 +245,7 @@ export class UserResolver {
 
   @ResolveField(() => Int, { name: 'totalReviews' })
   async totalReviews(
-    @Parent() user: User,
+    @Parent() user: UserType,
     @Context() context: GqlContext,
   ): Promise<number> {
     const loader = context.userDataLoader.createUserReviewsLoader();

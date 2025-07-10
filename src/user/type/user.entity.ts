@@ -36,7 +36,7 @@ export class UserType {
   @Field(() => String)
   phone: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   avatar: string | null;
 
   @Field(() => Date, { nullable: true })
