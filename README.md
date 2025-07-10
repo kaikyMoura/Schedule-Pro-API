@@ -30,136 +30,295 @@ The API includes robust authentication with JWT, role-based access control (RBAC
 
 ## 2. Features
 
-- 🔐 User Authentication (JWT-based)
+### 🔐 Authentication & Security
+- JWT-based authentication with refresh tokens
+- Role-based access control (RBAC) - Customer, Staff, Admin
+- Session management with user sessions tracking
+- OTP verification via Twilio SMS
+- Rate limiting and throttling protection
 
-- 🧪 Unit and Integration Testing with `Jest`
+### 📅 Appointment Management
+- Complete CRUD operations for appointments
+- Advanced filtering and pagination
+- Real-time availability checking
+- Appointment status tracking (Scheduled, Confirmed, Completed, Cancelled)
 
-- ⚙️ Modular & Scalable Architecture using NestJS best practices
+### 👥 User Management
+- Multi-role user system (Customer, Staff, Admin)
+- Profile management with avatar support
+- Email verification via SendGrid
+- Password reset functionality
+
+### 📊 Business Intelligence
+- Appointment analytics and reporting
+- Staff performance metrics
+- Customer engagement tracking
+- Audit logging for compliance
+
+### 🧪 Testing & Quality
+- Comprehensive unit and integration tests with Jest
+- E2E testing setup
+- Code coverage reporting
+- Automated testing pipeline
 
 ---
 
 ## 3. Technologies
 
-<div style="display: inline-block">
-  <img alt="typescript-logo" width="48" style="margin-right: 20px" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/typescript/typescript-original.svg" />
-  <img alt="nest-logo" width="48" style="margin-right: 12px" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nestjs/nestjs-original-wordmark.svg" />
-  <img alt="prisma-logo" width="48" style="margin-right: 12px" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/prisma/prisma-original.svg" />
-  <img alt="nodejs-logo" width="48" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nodejs/nodejs-original-wordmark.svg" />
-  <img alt="graphql-logo" width="48" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/graphql/graphql-plain-wordmark.svg" />
-  <img alt="postgresql-logo" width="48" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/postgresql/postgresql-original-wordmark.svg" />
-</div>
+### 🎯 Backend Framework
+- **NestJS** - Progressive Node.js framework for building scalable applications
+- **TypeScript** - Type-safe JavaScript for better development experience
+
+### 🗄️ Database & ORM
+- **PostgreSQL** - Robust relational database
+- **Prisma** - Modern database toolkit with type-safe queries
+- **Redis** - In-memory caching for performance optimization
+
+### 🔐 Authentication & Security
+- **JWT** - JSON Web Tokens for stateless authentication
+- **Passport.js** - Authentication middleware
+- **bcrypt** - Password hashing and verification
+
+### 🌐 External Services
+- **SendGrid** - Transactional email service
+- **Twilio** - SMS and OTP verification
+- **GraphQL** - Query language for APIs
+
+### 🧪 Testing & Development
+- **Jest** - Testing framework
+- **ESLint** - Code linting
+- **Prettier** - Code formatting
 
 ---
 
 ## 4. Installation
-### Prerequisites:
-Before running the project, ensure that **Node.js** is installed on your machine. If not, you can download it from the [official Node.js website](https://nodejs.org/en/) (LTS version recommended).
 
-To verify your Node.js installation, run:
+### Prerequisites
+- **Node.js** 18+ (LTS version recommended)
+- **PostgreSQL** 14+
+- **Redis** (optional, for caching)
+- **pnpm** (recommended package manager)
 
-```console
-node -v
-npm -v
-```
-
-Clone the repository to your local machine
-
-```console
+### Quick Start
+```bash
+# 1. Clone the repository
 git clone https://github.com/kaikyMoura/Schedule-Pro-API.git
-```
+cd Schedule-Pro-API
 
-Navigate into the project directory
-
-```bash
-cd Schedule-Pro-AP
-```
-Install dependencies
-
-```bash
-npm install
-# or
+# 2. Install dependencies
 pnpm install
-# or
-yarn install
-```
 
----
+# 3. Set up environment variables
+cp .env.example .env
+# Edit .env with your configuration
 
-## 6.  Environment Setup
-
-### Environment Variables
-Create a .env file in the project root based on the example below:
-
-```env
-# You can ask chatgpt if you don't know how to generate
-JWT_SECRET_KEY=your_jwt_secret_here
-
-# PostgreSQL
-DATABASE_URL="postgresql://user:password@localhost:5432/db_schedulepro"
-
-# SendGrid
-SENDGRID_KEY=your_sendgrid_api_key_here
-
-```
-
-### PostgreSQL Database
-You need a PostgreSQL database to run the project. You can create one in several ways:
-- Install postgres sql locally: [https://www.postgresql.org/download/](https://www.postgresql.org/download/)
-- Using `create db` [https://www.postgresql.org/docs/current/app-createdb.html](https://www.postgresql.org/docs/current/app-createdb.html)
-- Or via Docker + postgres [https://hub.docker.com/_/postgres](https://hub.docker.com/_/postgres)
-
-### Prisma Setup
-After configuring your database and .env, initialize and generate the Prisma client:
-
-```console
-# Run the Prisma migration via pnpm
+# 4. Set up database
 pnpm prisma migrate deploy
-
-# Generate the Prisma client
 pnpm prisma generate
-```
 
-You can use the Prisma CLI to inspect your DB or update schema as needed:
-
-```console
-pnpm prisma studio   # Open GUI to manage the DB
-```
-
----
-
-## 7. Running the Application:
-Once the dependencies are installed, you can start the development server with:
-
-```console
-npm start:dev
-# or
+# 5. Start development server
 pnpm start:dev
-# or
-yarn start:dev
 ```
 
-the application will be available on:
+### Alternative: Docker Setup
+```bash
+# Using Docker Compose
+docker-compose up -d
 
-```console
-http://localhost:5000
+# Or build manually
+docker build -t schedule-pro-api .
+docker run -p 5000:5000 schedule-pro-api
 ```
 
---- 
-
-## 8. Deployment
-The deployment is temporarily disabled. While i configure the deployment in google cloud.
 ---
 
-## 9. Documentation
-The API is fully documented and designed for easy integration. Each new endpoint is automatically included in the documentation.
+## 5. Environment Setup
 
-### Pages Documentation
-Each module in the codebase contains a corresponding `.md` file that serves as a usage guide and endpoint showcase.
+### Required Environment Variables
+```env
+# Application
+NODE_ENV=development
+PORT=5000
 
-Access it locally at:
-```bash
+# Database
+DATABASE_URL="postgresql://user:password@localhost:5432/schedule_pro"
+
+# JWT Authentication
+JWT_SECRET_KEY=your_super_secret_jwt_key_here
+JWT_EXPIRATION_TIME=1h
+JWT_REFRESH_EXPIRATION_TIME=7d
+
+# External Services
+SENDGRID_API_KEY=your_sendgrid_api_key
+SENDGRID_SENDER_EMAIL=noreply@yourdomain.com
+TWILIO_ACCOUNT_SID=your_twilio_account_sid
+TWILIO_AUTH_TOKEN=your_twilio_auth_token
+TWILIO_VERIFY_SERVICE_SID=your_twilio_verify_service_sid
+
+# Redis (Optional)
+REDIS_URL=redis://localhost:6379
+REDIS_TTL=300
+
+# Rate Limiting
+THROTTLER_TTL=60
+THROTTLER_LIMIT=10
+
+# CORS
+FRONTEND_URL=http://localhost:3000
+```
+
+### Environment Variables Guide
+- **JWT_SECRET_KEY**: Generate a strong secret key (min 32 characters)
+- **DATABASE_URL**: PostgreSQL connection string
+- **SENDGRID_API_KEY**: Get from SendGrid dashboard
+- **TWILIO_***: Get from Twilio console
+
+---
+
+## 6. API Documentation
+
+### GraphQL Playground
+Access the interactive GraphQL playground at:
+```
 http://localhost:5000/graphql
 ```
+
+### Available Endpoints
+
+#### Authentication
+- `POST /auth/register` - User registration
+- `POST /auth/login` - User login
+- `POST /auth/refresh` - Refresh JWT token
+- `POST /auth/logout` - User logout
+
+#### Users
+- `GET /users` - Get users (with pagination)
+- `GET /users/:id` - Get user by ID
+- `PUT /users/:id` - Update user
+- `DELETE /users/:id` - Delete user
+
+#### Appointments
+- `GET /appointments` - Get appointments (with filters)
+- `POST /appointments` - Create appointment
+- `PUT /appointments/:id` - Update appointment
+- `DELETE /appointments/:id` - Cancel appointment
+
+### GraphQL Schema
+The API uses GraphQL for flexible data querying. Explore the schema in the GraphQL playground.
+
+---
+
+## 7. Development
+
+### Available Scripts
+```bash
+# Development
+pnpm start:dev          # Start development server with hot reload
+pnpm start:debug        # Start with debug mode
+
+# Testing
+pnpm test               # Run unit tests
+pnpm test:e2e          # Run end-to-end tests
+pnpm test:cov          # Run tests with coverage
+pnpm test:watch        # Run tests in watch mode
+
+# Database
+pnpm prisma studio     # Open Prisma Studio
+pnpm prisma migrate dev # Create and apply new migration
+pnpm prisma generate   # Generate Prisma client
+
+# Code Quality
+pnpm lint              # Run ESLint
+pnpm lint:fix          # Fix ESLint issues
+pnpm format            # Format code with Prettier
+```
+
+### Project Structure
+```
+src/
+├── appointment/        # Appointment management
+├── auth/              # Authentication & authorization
+├── common/            # Shared utilities & interceptors
+├── graphql/           # GraphQL loaders & context
+├── notification/      # Email & SMS notifications
+├── reviews/           # Review system
+├── serviceItem/       # Service management
+├── staff-availability/ # Staff scheduling
+├── staff-service/     # Staff-service associations
+├── user/              # User management
+└── user-session/      # Session tracking
+```
+
+---
+
+## 8. Contributing
+
+### Development Workflow
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Code Standards
+- Follow TypeScript best practices
+- Write unit tests for new features
+- Use conventional commit messages
+- Ensure all tests pass before submitting PR
+
+---
+
+## 9. Troubleshooting
+
+### Common Issues
+
+#### Database Connection Issues
+```bash
+# Check if PostgreSQL is running
+sudo systemctl status postgresql
+
+# Reset database
+pnpm prisma migrate reset
+```
+
+#### JWT Issues
+- Ensure `JWT_SECRET_KEY` is at least 32 characters
+- Check token expiration settings
+
+#### External Services
+- Verify SendGrid API key is valid
+- Check Twilio credentials and service SID
+
+---
+
+## 10. Deployment
+
+### Production Setup
+```bash
+# Build the application
+pnpm build
+
+# Start production server
+pnpm start:prod
+```
+
+### Docker Deployment
+```bash
+# Build Docker image
+docker build -t schedule-pro-api .
+
+# Run with environment variables
+docker run -p 5000:5000 \
+  -e DATABASE_URL="your_production_db_url" \
+  -e JWT_SECRET_KEY="your_production_jwt_secret" \
+  schedule-pro-api
+```
+
+### Environment Variables for Production
+- Set `NODE_ENV=production`
+- Use strong JWT secrets
+- Configure production database
+- Set up proper CORS origins
 
 ---
 
