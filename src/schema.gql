@@ -81,6 +81,12 @@ enum AppointmentTypeEnum {
   REGULAR
 }
 
+type AuthTokens {
+  accessToken: String!
+  expiresIn: Float!
+  refreshToken: String!
+}
+
 input AvailabilityFilterInput {
   createdAfter: DateTime
   createdBefore: DateTime
@@ -212,10 +218,10 @@ enum Gender {
 }
 
 type LoginResponse {
-  accessToken: String!
-  expiresIn: Float!
-  refreshToken: String!
-  user: UserType!
+  data: AuthTokens
+  error: String
+  message: String
+  success: Boolean!
 }
 
 input LoginUserInput {

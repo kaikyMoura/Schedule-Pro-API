@@ -15,7 +15,7 @@ import { LoginUserInput } from 'src/users/dtos/login-user.input';
 import { UserSessionService } from '../user-sessions/user-session.service';
 import { UserService } from '../users/user.service';
 import { TokenService } from './token.service';
-import { AuthTokens } from './types/auth-tokens-interface';
+import { AuthTokens } from './types/auth-tokens-type';
 import { LoginResponse } from './types/login-response.type';
 
 @Injectable()
@@ -71,7 +71,6 @@ export class AuthService {
 
     return {
       ...tokens,
-      user: this.userService.toUserType(user),
     };
   }
 
@@ -79,22 +78,24 @@ export class AuthService {
     loginDto: LoginUserInput,
     userAgent?: string,
     ipAddress?: string,
-  ): Promise<LoginResponse> {
+  ): Promise<AuthTokens> {
     const { email, password } = loginDto;
     this.checkRateLimit(email);
 
     const user = await this.userService.findByEmail(email);
+
+    console.log('🔑 User:', user);
 
     if (
       !user ||
       !(await this.hashingService.compare(password, user.password))
     ) {
       this.recordFailedAttempt(email);
-      throw new UnauthorizedException('Credenciais inválidas.');
+      throw new UnauthorizedException('Invalid credentials.');
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException('Esta conta está desativada.');
+      throw new UnauthorizedException('This account is disabled.');
     }
 
     this.loginAttempts.delete(email);
@@ -129,11 +130,9 @@ export class AuthService {
 
     const response = {
       ...tokens,
-      user: this.userService.toUserType(user),
     };
 
     console.log('📤 Login response:', {
-      user: response.user ? 'present' : 'missing',
       accessToken: response.accessToken ? 'present' : 'missing',
       refreshToken: response.refreshToken ? 'present' : 'missing',
       expiresIn: response.expiresIn,

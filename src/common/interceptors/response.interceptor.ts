@@ -57,13 +57,16 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
     }
 
     return next.handle().pipe(
-      map((data: T) => ({
-        success: true,
-        data,
-        timestamp: new Date().toISOString(),
-        path,
-        method,
-      })),
+      map((data: T) => {
+        console.log('RESPONSE INTERCEPTOR DATA:', data, 'TIPO:', typeof data);
+        return {
+          success: true,
+          data,
+          timestamp: new Date().toISOString(),
+          path,
+          method,
+        };
+      }),
     );
   }
 }

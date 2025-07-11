@@ -4,6 +4,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import { CustomThrottlerGuard } from './guards/throttler.guard';
 import { AuditInterceptor } from './interceptors/audit.interceptor';
+import { CacheInterceptor } from './interceptors/cache.interceptor';
 import { GlobalInterceptor } from './interceptors/global.interceptor';
 import { GraphQLValidationInterceptor } from './interceptors/graphql-validation.interceptor';
 import { LoggerInterceptor } from './interceptors/logger.interceptor';
@@ -23,6 +24,7 @@ import { LoggerMiddleware } from './middlewares/logger.middleware';
     LoggerMiddleware,
     CustomThrottlerGuard,
     GraphQLValidationInterceptor,
+    CacheInterceptor,
   ],
   exports: [
     GlobalExceptionFilter,
@@ -34,6 +36,7 @@ import { LoggerMiddleware } from './middlewares/logger.middleware';
     LoggerMiddleware,
     CustomThrottlerGuard,
     GraphQLValidationInterceptor,
+    CacheInterceptor,
   ],
 })
 export class CommonModule {}

@@ -43,12 +43,11 @@ export class AuthResolver {
   @Mutation(() => LoginResponse, { name: 'login' })
   async login(@Args('input') input: LoginUserInput): Promise<LoginResponse> {
     const data = await this.authService.login(input);
-
+    console.log('RESOLVER FINAL LoginResponse:', data, 'TIPO:', typeof data);
     return {
-      user: data.user,
-      accessToken: data.accessToken,
-      refreshToken: data.refreshToken,
-      expiresIn: data.expiresIn,
+      success: true,
+      message: 'Login successful',
+      data,
     };
   }
 

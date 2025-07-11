@@ -1,4 +1,4 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { UnauthorizedException, UseInterceptors } from '@nestjs/common';
 import {
   Args,
   Context,
@@ -13,10 +13,12 @@ import {
 } from '@nestjs/graphql';
 import { Role } from 'prisma/app/generated/prisma/client';
 import { AppointmentType } from 'src/appointments/types/appointment.entity';
+import { ResponseInterceptor } from 'src/common/interceptors/response.interceptor';
 import { CustomRequest } from 'src/common/types/custom-request';
 import { PaginationInput } from 'src/common/types/pagination.input';
 import { GqlContext } from 'src/graphql/gql-context.interface';
 import { ReviewType } from 'src/reviews/types/review.type';
+import { StaffAvailabilityType } from 'src/staff-availabilitys/types/staff-availability.type';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Roles } from './decorators/role.decorator';
 import { UpdateUserInput } from './dtos/update-user.input';
@@ -26,9 +28,9 @@ import { PaginatedUsers } from './types/paginated-user.type';
 import { UserResponse } from './types/user-response.type';
 import { UserType } from './types/user.type';
 import { UserService } from './user.service';
-import { StaffAvailabilityType } from 'src/staff-availabilitys/types/staff-availability.type';
 
 @Resolver(() => UserResponse)
+@UseInterceptors(ResponseInterceptor)
 export class UserResolver {
   constructor(private readonly userService: UserService) {}
 

@@ -6,10 +6,10 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { AuditInterceptor } from './audit.interceptor';
+import { CacheInterceptor } from './cache.interceptor';
+import { GraphQLValidationInterceptor } from './graphql-validation.interceptor';
 import { LoggerInterceptor } from './logger.interceptor';
 import { MetricsInterceptor } from './metrics.interceptor';
-import { ResponseInterceptor } from './response.interceptor';
-import { GraphQLValidationInterceptor } from './graphql-validation.interceptor';
 
 @Injectable()
 export class GlobalInterceptor implements NestInterceptor {
@@ -17,8 +17,8 @@ export class GlobalInterceptor implements NestInterceptor {
     private readonly loggerInterceptor: LoggerInterceptor,
     private readonly auditInterceptor: AuditInterceptor,
     private readonly metricsInterceptor: MetricsInterceptor,
-    private readonly responseInterceptor: ResponseInterceptor<any>,
     private readonly graphqlValidationInterceptor: GraphQLValidationInterceptor,
+    private readonly cacheInterceptor: CacheInterceptor,
   ) {}
 
   /**
@@ -35,8 +35,7 @@ export class GlobalInterceptor implements NestInterceptor {
             this.metricsInterceptor.intercept(context, {
               handle: () =>
                 this.graphqlValidationInterceptor.intercept(context, {
-                  handle: () =>
-                    this.responseInterceptor.intercept(context, next),
+                  handle: () => this.cacheInterceptor.intercept(context, next),
                 }),
             }),
         }),
