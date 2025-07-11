@@ -12,5 +12,6 @@ export interface CustomRequest {
   body?: Record<string, any>;
   ip?: string;
   originalUrl?: string;
+  url?: string;
   method?: string;
 }

@@ -3,7 +3,7 @@ import { Prisma, Review } from 'prisma/app/generated/prisma/client';
 import { Specification } from 'src/common/specs/specification.interface';
 import { CreateReviewInput } from './dto/create-review-input';
 import { ReviewRepository } from './review.repository';
-import { ReviewType } from './types/review.entity';
+import { ReviewType } from './types/review.type';
 
 @Injectable()
 export class ReviewService {

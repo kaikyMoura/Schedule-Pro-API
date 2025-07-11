@@ -8,7 +8,7 @@ import {
 } from 'class-validator';
 
 @InputType()
-export class ReviewsFilterInput {
+export class ReviewFilterInput {
   @Field({ nullable: true })
   @IsString()
   @IsOptional()

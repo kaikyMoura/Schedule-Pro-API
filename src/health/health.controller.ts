@@ -1,13 +1,14 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
-  HealthCheckService,
-  PrismaHealthIndicator,
-  HealthCheck,
-  MemoryHealthIndicator,
   DiskHealthIndicator,
+  HealthCheck,
+  HealthCheckService,
+  MemoryHealthIndicator,
+  PrismaHealthIndicator,
 } from '@nestjs/terminus';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { RedisService } from 'src/redis/redis.service';
 
 @Controller('health')
 export class HealthController {
@@ -17,6 +18,7 @@ export class HealthController {
     private memory: MemoryHealthIndicator,
     private disk: DiskHealthIndicator,
     private prisma: PrismaService,
+    private redisHealth: RedisService,
   ) {}
 
   @Get()
@@ -37,6 +39,29 @@ export class HealthController {
           path: '/',
           thresholdPercent: 0.9,
         }),
+      () => this.redisHealth.isHealthy(),
+    ]);
+  }
+
+  @Get('ready')
+  @HealthCheck()
+  @ApiOperation({ summary: 'Get application readiness status' })
+  @ApiResponse({ status: 200, description: 'Readiness check successful' })
+  @ApiResponse({ status: 503, description: 'Service unavailable' })
+  ready() {
+    return this.health.check([
+      async () => this.prismaHealth.pingCheck('prisma', this.prisma),
+    ]);
+  }
+
+  @Get('live')
+  @HealthCheck()
+  @ApiOperation({ summary: 'Get application liveness status' })
+  @ApiResponse({ status: 200, description: 'Liveness check successful' })
+  @ApiResponse({ status: 503, description: 'Service unavailable' })
+  live() {
+    return this.health.check([
+      () => this.memory.checkHeap('memory_heap', 150 * 1024 * 1024),
     ]);
   }
 }

@@ -9,6 +9,7 @@ import { AuditInterceptor } from './audit.interceptor';
 import { LoggerInterceptor } from './logger.interceptor';
 import { MetricsInterceptor } from './metrics.interceptor';
 import { ResponseInterceptor } from './response.interceptor';
+import { GraphQLValidationInterceptor } from './graphql-validation.interceptor';
 
 @Injectable()
 export class GlobalInterceptor implements NestInterceptor {
@@ -17,6 +18,7 @@ export class GlobalInterceptor implements NestInterceptor {
     private readonly auditInterceptor: AuditInterceptor,
     private readonly metricsInterceptor: MetricsInterceptor,
     private readonly responseInterceptor: ResponseInterceptor<any>,
+    private readonly graphqlValidationInterceptor: GraphQLValidationInterceptor,
   ) {}
 
   /**
@@ -31,7 +33,11 @@ export class GlobalInterceptor implements NestInterceptor {
         this.auditInterceptor.intercept(context, {
           handle: () =>
             this.metricsInterceptor.intercept(context, {
-              handle: () => this.responseInterceptor.intercept(context, next),
+              handle: () =>
+                this.graphqlValidationInterceptor.intercept(context, {
+                  handle: () =>
+                    this.responseInterceptor.intercept(context, next),
+                }),
             }),
         }),
     });

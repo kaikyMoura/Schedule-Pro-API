@@ -81,6 +81,35 @@ enum AppointmentTypeEnum {
   REGULAR
 }
 
+input AvailabilityFilterInput {
+  createdAfter: DateTime
+  createdBefore: DateTime
+  dayOfWeek: DayOfWeek
+  isAvailable: Boolean
+  isBreak: Boolean
+  isDeleted: Boolean
+  search: String
+  staffId: String
+}
+
+input AvailabilityOrderInput {
+  orderByCreatedAt: SortOrder
+  orderByDayOfWeek: SortOrder
+  orderByEndTime: SortOrder
+  orderByIsAvailable: SortOrder
+  orderByIsBreak: SortOrder
+  orderByStartTime: SortOrder
+  orderByUpdatedAt: SortOrder
+}
+
+input AvailabilityPaginationInput {
+  limit: Float = 20
+  offset: Float! = 0
+  orderBy: AvailabilityOrderInput
+  orderDirection: SortOrder! = ASC
+  page: Float = 1
+}
+
 input CreateAppointmentInput {
   currency: String!
   customerId: String!
@@ -128,6 +157,17 @@ input CreateServiceItemInput {
   tags: [String!]
 }
 
+input CreateStaffServiceInput {
+  customDuration: Int
+  customPrice: Float
+  experience: Int
+  isActive: Boolean!
+  isPreferred: Boolean!
+  serviceId: String!
+  skillLevel: Int
+  staffId: String!
+}
+
 input CreateUserInput {
   address: String
   avatar: String
@@ -137,7 +177,7 @@ input CreateUserInput {
   dateOfBirth: DateTime
   email: String!
   firstName: String!
-  gender: String
+  gender: Gender
   language: String
   lastName: String!
   password: String!
@@ -153,6 +193,31 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+"""The day of the week"""
+enum DayOfWeek {
+  FRIDAY
+  MONDAY
+  SATURDAY
+  SUNDAY
+  THURSDAY
+  TUESDAY
+  WEDNESDAY
+}
+
+"""User gender"""
+enum Gender {
+  FEMALE
+  MALE
+  OTHER
+}
+
+type LoginResponse {
+  accessToken: String!
+  expiresIn: Float!
+  refreshToken: String!
+  user: UserType!
+}
+
 input LoginUserInput {
   email: String!
   password: String!
@@ -165,6 +230,7 @@ type Mutation {
   createAppointment(input: CreateAppointmentInput!): AppointmentResponse!
   createReview(input: CreateReviewInput!): ReviewsResponse!
   createServiceItem(input: CreateServiceItemInput!): ServiceItemResponse!
+  createStaffService(input: CreateStaffServiceInput!): StaffServiceResponse!
 
   """
   Deactivate a user by their ID. Users can only deactivate themselves unless they are admin or manager.
@@ -172,11 +238,12 @@ type Mutation {
   deactivateUser(id: ID!): UserResponse!
   deleteAppointment(id: String!): AppointmentResponse!
   deleteServiceItem(id: String!): ServiceItemResponse!
+  deleteStaffService(id: String!): StaffServiceResponse!
 
   """Delete a user by their ID. Only admins and managers can delete users."""
   deleteUser(id: ID!): UserResponse!
   forgotPassword(email: String!): UserResponse!
-  login(input: LoginUserInput!): UserResponse!
+  login(input: LoginUserInput!): LoginResponse!
   logout: UserResponse!
   refreshToken: UserResponse!
   register(input: CreateUserInput!): UserResponse!
@@ -185,13 +252,19 @@ type Mutation {
   sendVerificationEmail: UserResponse!
   updateAppointment(id: String!, input: UpdateAppointmentInput!): AppointmentResponse!
   updateServiceItem(id: String!, input: UpdateServiceItemInput!): ServiceItemResponse!
+  updateStaffService(id: String!, input: UpdateStaffServiceInput!): StaffServiceResponse!
 
   """
   Update a user by their ID. Users can only update themselves unless they are admin or manager.
   """
   updateUser(id: ID!, input: UpdateUserInput!): UserResponse!
   verifyEmail(token: String!): UserResponse!
-  verifyOtp(code: String!, phone: String!): UserResponse!
+  verifyOtp(input: OtpInput!): UserResponse!
+}
+
+input OtpInput {
+  code: String!
+  phone: String!
 }
 
 type PaginatedAppointments {
@@ -201,17 +274,31 @@ type PaginatedAppointments {
   totalCount: Int!
 }
 
-type PaginatedReviews {
+type PaginatedReview {
   hasNextPage: Boolean!
   hasPreviousPage: Boolean!
   nodes: [ReviewType!]!
   totalCount: Int!
 }
 
-type PaginatedServiceItems {
+type PaginatedServiceItem {
   hasNextPage: Boolean!
   hasPreviousPage: Boolean!
   nodes: [ServiceItemType!]!
+  totalCount: Int!
+}
+
+type PaginatedStaffAvailability {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  nodes: [StaffAvailabilityType!]!
+  totalCount: Int!
+}
+
+type PaginatedStaffService {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  nodes: [StaffServiceType!]!
   totalCount: Int!
 }
 
@@ -237,9 +324,13 @@ type Query {
   """Get the current user"""
   me: UserResponse!
   review(id: String!): ReviewsResponse!
-  reviews(filter: ReviewsFilterInput, orderBy: ReviewsOrderInput, pagination: PaginationInput): PaginatedReviews!
+  reviews(filter: ReviewFilterInput, orderBy: ReviewOrderInput, pagination: PaginationInput): PaginatedReview!
   serviceItem(id: String!): ServiceItemType!
-  serviceItems(filter: ServiceItemFilterInput, orderBy: ServiceItemOrderInput, pagination: PaginationInput): PaginatedServiceItems!
+  serviceItems(filter: ServiceItemFilterInput, orderBy: ServiceItemOrderInput, pagination: PaginationInput): PaginatedServiceItem!
+  staffAvailability(id: String!): StaffAvailabilityResponse!
+  staffAvailabilitys(filter: AvailabilityFilterInput, orderBy: AvailabilityOrderInput, pagination: AvailabilityPaginationInput): PaginatedStaffAvailability!
+  staffServiceById(id: String!): StaffServiceResponse!
+  staffServices(filter: StaffServiceFilterInput, orderBy: StaffServiceOrderInput, pagination: StaffServicePaginationInput): PaginatedStaffService!
 
   """Get a user by their ID"""
   user(id: String!): UserResponse!
@@ -248,6 +339,25 @@ type Query {
   Get all users. Or get paginated users by role. Or get paginated users by filter.
   """
   users(filter: UserFilterInput, orderBy: UserOrderInput, pagination: PaginationInput): PaginatedUsers!
+}
+
+input ReviewFilterInput {
+  createdAfter: DateTime
+  createdBefore: DateTime
+  customerId: String
+  isApproved: Boolean
+  isDeleted: Boolean
+  isPublic: Boolean
+  rating: Float
+  search: String
+  serviceId: String
+  staffId: String
+}
+
+input ReviewOrderInput {
+  createdAt: SortOrder
+  rating: SortOrder
+  updatedAt: SortOrder
 }
 
 type ReviewType {
@@ -264,25 +374,6 @@ type ReviewType {
   staffId: String
   title: String
   updatedAt: DateTime
-}
-
-input ReviewsFilterInput {
-  createdAfter: DateTime
-  createdBefore: DateTime
-  customerId: String
-  isApproved: Boolean
-  isDeleted: Boolean
-  isPublic: Boolean
-  rating: Float
-  search: String
-  serviceId: String
-  staffId: String
-}
-
-input ReviewsOrderInput {
-  createdAt: SortOrder
-  rating: SortOrder
-  updatedAt: SortOrder
 }
 
 type ReviewsResponse {
@@ -362,6 +453,64 @@ enum SortOrder {
   DESC
 }
 
+type StaffAvailabilityResponse {
+  data: StaffAvailabilityType
+  error: String
+  message: String
+  success: Boolean!
+}
+
+type StaffAvailabilityType {
+  breakEndTime: String
+  breakStartTime: String
+  createdAt: DateTime!
+  dayOfWeek: DayOfWeek!
+  endTime: String!
+  id: ID!
+  isAvailable: Boolean!
+  specificDate: DateTime
+  staffId: String!
+  startTime: String!
+  updatedAt: DateTime!
+}
+
+input StaffServiceFilterInput {
+  createdAfter: DateTime
+  createdBefore: DateTime
+  experience: Int
+  isActive: Boolean
+  isDeleted: Boolean
+  isPreferred: Boolean
+  search: String
+  serviceId: String
+  skillLevel: Int
+  staffId: String
+}
+
+input StaffServiceOrderInput {
+  orderByCreatedAt: SortOrder
+  orderByDeletedAt: SortOrder
+  orderByExperience: SortOrder
+  orderByIsActive: SortOrder
+  orderByIsPreferred: SortOrder
+  orderBySkillLevel: SortOrder
+}
+
+input StaffServicePaginationInput {
+  limit: Float = 20
+  offset: Float! = 0
+  orderBy: StaffServiceOrderInput
+  orderDirection: SortOrder! = ASC
+  page: Float = 1
+}
+
+type StaffServiceResponse {
+  data: StaffServiceType
+  error: String
+  message: String
+  success: Boolean!
+}
+
 type StaffServiceType {
   createdAt: DateTime
   customDuration: Int
@@ -411,6 +560,19 @@ input UpdateServiceItemInput {
   tags: [String!]
 }
 
+input UpdateStaffServiceInput {
+  createdAt: DateTime
+  customDuration: Int
+  customPrice: Float
+  deletedAt: DateTime
+  experience: Int
+  isActive: Boolean!
+  isPreferred: Boolean!
+  serviceId: String!
+  skillLevel: Int
+  staffId: String!
+}
+
 input UpdateUserInput {
   address: String
   avatar: String
@@ -420,7 +582,7 @@ input UpdateUserInput {
   dateOfBirth: DateTime
   email: String
   firstName: String
-  gender: String
+  gender: Gender
   isActive: Boolean
   language: String
   lastName: String
@@ -459,6 +621,7 @@ type UserResponse {
   error: String
   message: String
   staffAppointments: [AppointmentType!]!
+  staffAvailabilities: [StaffAvailabilityType!]!
   staffReceivedReviews: [ReviewType!]!
   success: Boolean!
   totalReviews: Int!
@@ -475,7 +638,7 @@ type UserType {
   deletedAt: DateTime
   email: String!
   firstName: String!
-  gender: String
+  gender: Gender
   id: String!
   lastName: String!
   phone: String!

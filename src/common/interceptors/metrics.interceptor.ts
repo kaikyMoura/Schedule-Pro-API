@@ -5,6 +5,7 @@ import {
   NestInterceptor,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { GqlContextType, GqlExecutionContext } from '@nestjs/graphql';
 import { Request, Response } from 'express';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
@@ -19,10 +20,11 @@ interface RequestMetrics {
   userAgent?: string;
   userId?: string;
 }
+
 @Injectable()
 export class MetricsInterceptor implements NestInterceptor {
   private metrics: RequestMetrics[] = [];
-  private readonly maxMetrics = 1000; // Keep last 1000 requests
+  private readonly maxMetrics = 1000;
 
   constructor(private configService: ConfigService) {}
 
@@ -33,29 +35,67 @@ export class MetricsInterceptor implements NestInterceptor {
    * @returns An observable that emits the response with metrics recorded
    */
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const request = context.switchToHttp().getRequest<CustomRequest>();
-    const response = context.switchToHttp().getResponse<Response>();
+    const contextType = context.getType<GqlContextType>();
     const startTime = Date.now();
+
+    let method: string | undefined;
+    let route: string | undefined;
+    let statusCode: number | undefined;
+    let userAgent: string | undefined;
+    let userId: string | undefined;
+
+    try {
+      if (contextType === 'http') {
+        const request = context.switchToHttp().getRequest<CustomRequest>();
+        const response = context.switchToHttp().getResponse<Response>();
+
+        method = request.method;
+        route = request.route?.path ?? request.originalUrl;
+        statusCode = response.statusCode;
+        userAgent = request.headers['user-agent'];
+        userId = request.user?.sub;
+      } else if (contextType === 'graphql') {
+        const gqlContext = GqlExecutionContext.create(context);
+        const info = gqlContext.getInfo<{
+          fieldName: string;
+          operation: { name: { value: string } };
+        }>();
+        const ctx = gqlContext.getContext<{
+          currentUser?: { sub: string };
+          req?: { headers: { 'user-agent': string } };
+        }>();
+
+        method = info?.operation?.name?.value || 'query';
+        route = `GraphQL: ${info?.fieldName || 'unknown'}`;
+        statusCode = 200;
+        userAgent = ctx.req?.headers?.['user-agent'];
+        userId = ctx.currentUser?.sub;
+      }
+    } catch {
+      method = 'unknown';
+      route = 'unknown';
+      statusCode = 500;
+    }
 
     return next.handle().pipe(
       tap(() => {
         const responseTime = Date.now() - startTime;
 
         const metric: RequestMetrics = {
-          method: request.method!,
-          route: request.route?.path ?? request.originalUrl!,
-          statusCode: response.statusCode,
+          method: method || 'unknown',
+          route: route || 'unknown',
+          statusCode: statusCode || 500,
           responseTime,
           timestamp: new Date(),
-          userAgent: request.headers['user-agent'],
-          userId: request.user?.sub,
+          userAgent,
+          userId,
         };
         this.addMetric(metric);
 
-        // Log slow requests
         if (responseTime > 1000) {
-          console.warn(`Slow request detected: ${metric.method}
-${metric.route} - ${responseTime}ms`);
+          console.warn(
+            `Slow request detected: ${metric.method} ${metric.route} - ${responseTime}ms`,
+          );
         }
       }),
     );

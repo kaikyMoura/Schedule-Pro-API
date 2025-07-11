@@ -7,7 +7,6 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { JwtModule } from '@nestjs/jwt';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
-import * as redisStore from 'cache-manager-ioredis';
 import Joi from 'joi';
 import { join } from 'path';
 
@@ -15,37 +14,41 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 
-import { AppointmentModule } from './appointment/appointment.module';
+import { AppointmentModule } from './appointments/appointment.module';
 import { AuthModule } from './auth/auth.module';
-import { ServiceItemModule } from './serviceItem/service-item.module';
-import { StaffServiceModule } from './staff-service/staff-service.module';
-import { UserSessionModule } from './user-session/user-session.module';
-import { UserModule } from './user/user.module';
+import { ServiceItemModule } from './service-items/service-item.module';
+import { StaffServiceModule } from './staff-services/staff-service.module';
+import { UserSessionModule } from './user-sessions/user-session.module';
+import { UserModule } from './users/user.module';
 
 import { CommonModule } from './common/common.module';
 import { HealthModule } from './health/health.module';
 
-import { AppointmentService } from './appointment/appointment.service';
-import cacheConfig from './common/config/cache.config';
-import databaseConfig from './common/config/db.config';
-import graphqlConfig from './common/config/graphql.config';
-import jwtConfig from './common/config/jwt.config';
+import { ApolloServerPluginCacheControl } from '@apollo/server/plugin/cacheControl';
+import { ApolloServerPluginInlineTrace } from '@apollo/server/plugin/inlineTrace';
+import KeyvRedis from '@keyv/redis';
+import { AppointmentService } from './appointments/appointment.service';
+import cacheConfig from './common/configs/cache.config';
+import databaseConfig from './common/configs/db.config';
+import graphqlConfig from './common/configs/graphql.config';
+import jwtConfig from './common/configs/jwt.config';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { GlobalGuard } from './common/guards/global.guard';
 import { GlobalInterceptor } from './common/interceptors/global.interceptor';
-import { LoggerModule } from './common/logger/logger.module';
+import { LoggerModule } from './common/loggers/logger.module';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 import { CustomRequest } from './common/types/custom-request';
-import { ServiceItemDataLoader } from './serviceItem/dataloaders/service-item.loader';
-import { UserDataLoader } from './user/dataloader/user.loader';
-import { HashingModule } from './hashing/hashing.module';
-import { NotificationModule } from './notification/notification.module';
+import { HashingModule } from './hashings/hashing.module';
+import { NotificationModule } from './notifications/notification.module';
 import { ReviewModule } from './reviews/review.module';
 import { ReviewService } from './reviews/review.service';
-import { ServiceItemService } from './serviceItem/service-item.service';
-import { StaffAvailabilityModule } from './staff-availability/staff-availability.module';
-import { StaffServiceService } from './staff-service/staff-service.service';
-import { UserService } from './user/user.service';
+import { ServiceItemDataLoader } from './service-items/dataloaders/service-item.loader';
+import { ServiceItemService } from './service-items/service-item.service';
+import { StaffAvailabilityModule } from './staff-availabilitys/staff-availability.module';
+import { StaffAvailabilityService } from './staff-availabilitys/staff-availability.service';
+import { StaffServiceService } from './staff-services/staff-service.service';
+import { UserDataLoader } from './users/dataloaders/user.loader';
+import { UserService } from './users/user.service';
 
 @Module({
   imports: [
@@ -104,12 +107,15 @@ import { UserService } from './user/user.service';
       imports: [ConfigModule],
       inject: [ConfigService],
       isGlobal: true,
-      useFactory: (configService: ConfigService) => ({
-        store: redisStore,
-        host: configService.get<string>('REDIS_HOST', 'localhost'),
-        port: configService.get<number>('REDIS_PORT', 6379),
-        ttl: configService.get<number>('REDIS_TTL', 300),
-      }),
+      useFactory: (configService: ConfigService) => {
+        return {
+          stores: [
+            new KeyvRedis(configService.get<string>('REDIS_URL'), {
+              connectionTimeout: 1000,
+            }),
+          ],
+        };
+      },
     }),
     // GraphQL Configuration
     GraphQLModule.forRootAsync<ApolloDriverConfig>({
@@ -123,17 +129,28 @@ import { UserService } from './user/user.service';
         serviceItemService: ServiceItemService,
         userService: UserService,
         staffServiceService: StaffServiceService,
+        staffAvailabilityService: StaffAvailabilityService,
       ) => ({
+        debug: configService.get<string>('NODE_ENV') === 'development',
         autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
         sortSchema: true,
         playground: configService.get<string>('NODE_ENV') !== 'production',
         introspection: configService.get<string>('NODE_ENV') !== 'production',
+        plugins: [
+          ApolloServerPluginInlineTrace(),
+          ApolloServerPluginCacheControl(),
+        ],
+        subscriptions: {
+          'graphql-ws': true,
+        },
         context: ({ req }: { req: CustomRequest }) => ({
+          req,
           currentUser: req.user,
           userDataLoader: new UserDataLoader(
             reviewService,
             appointmentService,
             userService,
+            staffAvailabilityService,
           ).createUserLoader(),
           serviceItemDataLoader: new ServiceItemDataLoader(
             serviceItemService,
@@ -143,11 +160,25 @@ import { UserService } from './user/user.service';
             userService,
           ).createServiceItemLoader(),
         }),
-        formatError: (error) => ({
-          message: error.message,
-          code: error.extensions?.code,
-          timestamp: new Date().toISOString(),
-        }),
+        formatError: (error) => {
+          if (
+            error.extensions?.code === 'VALIDATION_ERROR' ||
+            error.message.includes('Validation failed')
+          ) {
+            return {
+              message: error.message,
+              code: error.extensions?.code || 'VALIDATION_ERROR',
+              errors: error.extensions?.errors || [],
+              timestamp: new Date().toISOString(),
+            };
+          }
+
+          return {
+            message: error.message,
+            code: error.extensions?.code,
+            timestamp: new Date().toISOString(),
+          };
+        },
       }),
     }),
     ScheduleModule.forRoot(),

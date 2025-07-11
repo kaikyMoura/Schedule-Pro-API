@@ -15,13 +15,10 @@ export class LoggerMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction): void {
     const { method, originalUrl } = req;
 
-    // Use req.get to safely access headers
-    // This avoids issues with headers that may not be present
     const userAgent = req.get('User-Agent') || '';
 
     const startTime = Date.now();
 
-    // Log the incoming request details
     res.on('finish', () => {
       const { statusCode } = res;
 

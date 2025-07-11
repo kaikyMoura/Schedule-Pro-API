@@ -1,6 +1,6 @@
 import { CustomRequest } from 'src/common/types/custom-request';
-import { ServiceItemDataLoader } from '../serviceItem/dataloaders/service-item.loader';
-import { UserDataLoader } from '../user/dataloader/user.loader';
+import { ServiceItemDataLoader } from '../service-items/dataloaders/service-item.loader';
+import { UserDataLoader } from '../users/dataloaders/user.loader';
 
 export interface GqlContext {
   userDataLoader: UserDataLoader;

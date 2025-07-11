@@ -56,6 +56,17 @@ COPY --chown=node:node --from=build /usr/src/app/prisma ./prisma
 COPY --chown=node:node --from=build /usr/src/app/package.json .
 COPY --chown=node:node --from=build /usr/src/app/dist ./dist
 
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nestjs
+
+# Copy built application
+COPY --from=build --chown=nestjs:nodejs /usr/src/app/dist ./dist
+COPY --from=build --chown=nestjs:nodejs /usr/src/app/node_modules ./node_modules
+COPY --from=build --chown=nestjs:nodejs /usr/src/app/package.json ./package.json
+COPY --from=build --chown=nestjs:nodejs /usr/src/app/prisma ./prisma
+USER nestjs
+
 # Expose the application port
 EXPOSE ${PORT}
 

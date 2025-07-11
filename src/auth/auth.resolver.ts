@@ -1,16 +1,23 @@
-import { UnauthorizedException, UseGuards } from '@nestjs/common';
+import {
+  UnauthorizedException,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import { Public } from 'src/common/decorators/public.decorator';
+import { GraphQLValidationInterceptor } from 'src/common/interceptors/graphql-validation.interceptor';
 import { CustomRequest } from 'src/common/types/custom-request';
-import { NotificationService } from 'src/notification/notification.service';
-import { CurrentUser } from 'src/user/decorators/current-user.decorator';
-import { CreateUserInput } from 'src/user/dtos/create-user.input';
-import { LoginUserInput } from 'src/user/dtos/login-user.input';
-import { UserResponse } from 'src/user/type/user-response.type';
-import { UserType } from 'src/user/type/user.entity';
+import { OtpInput } from 'src/notifications/dtos/otp.input';
+import { NotificationService } from 'src/notifications/notification.service';
+import { CurrentUser } from 'src/users/decorators/current-user.decorator';
+import { CreateUserInput } from 'src/users/dtos/create-user.input';
+import { LoginUserInput } from 'src/users/dtos/login-user.input';
+import { UserResponse } from 'src/users/types/user-response.type';
+import { UserType } from 'src/users/types/user.type';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
+import { LoginResponse } from './types/login-response.type';
 
 @Resolver(() => UserType)
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -21,6 +28,7 @@ export class AuthResolver {
   ) {}
 
   @Public()
+  @UseInterceptors(GraphQLValidationInterceptor)
   @Mutation(() => UserResponse, { name: 'register' })
   async register(@Args('input') input: CreateUserInput): Promise<UserResponse> {
     const user = await this.authService.register(input);
@@ -32,14 +40,15 @@ export class AuthResolver {
   }
 
   @Public()
-  @Mutation(() => UserResponse, { name: 'login' })
-  async login(@Args('input') input: LoginUserInput): Promise<UserResponse> {
+  @Mutation(() => LoginResponse, { name: 'login' })
+  async login(@Args('input') input: LoginUserInput): Promise<LoginResponse> {
     const data = await this.authService.login(input);
 
     return {
-      success: true,
-      message: 'User logged in successfully',
-      data: data,
+      user: data.user,
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+      expiresIn: data.expiresIn,
     };
   }
 
@@ -126,13 +135,10 @@ export class AuthResolver {
 
   @Public()
   @Mutation(() => UserResponse, { name: 'verifyOtp' })
-  async verifyOtp(
-    @Args('phone') phone: string,
-    @Args('code') code: string,
-  ): Promise<UserResponse> {
+  async verifyOtp(@Args('input') otpInput: OtpInput): Promise<UserResponse> {
     const data = await this.notificationService.checkVerificationCode(
-      phone,
-      code,
+      otpInput.phone,
+      otpInput.code,
     );
 
     return {

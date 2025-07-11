@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
-import { HashingModule } from 'src/hashing/hashing.module';
-import { NotificationModule } from 'src/notification/notification.module';
+import { HashingModule } from 'src/hashings/hashing.module';
+import { NotificationModule } from 'src/notifications/notification.module';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { UserSessionModule } from 'src/user-session/user-session.module';
-import { UserModule } from 'src/user/user.module';
+import { UserSessionModule } from 'src/user-sessions/user-session.module';
+import { UserModule } from 'src/users/user.module';
 import { AuthResolver } from './auth.resolver';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';

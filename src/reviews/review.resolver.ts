@@ -1,24 +1,24 @@
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { NotFoundException } from '@nestjs/common';
-import { ReviewService } from './review.service';
-import { ReviewType } from './types/review.entity';
-import { ReviewsFilterInput } from './dto/reviews-filter.input';
-import { ReviewsOrderInput } from './dto/reviews-order.input';
+import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { PaginationInput } from 'src/common/types/pagination.input';
-import { PaginatedReviews } from './types/paginated-reviews.type';
-import { ReviewsResponse } from './types/reviews-response.type';
 import { CreateReviewInput } from './dto/create-review-input';
+import { ReviewFilterInput } from './dto/reviews-filter.input';
+import { ReviewOrderInput } from './dto/reviews-order.input';
+import { ReviewService } from './review.service';
+import { PaginatedReview } from './types/paginated-review.type';
+import { ReviewsResponse } from './types/review-response.type';
+import { ReviewType } from './types/review.type';
 
 @Resolver(ReviewType)
 export class ReviewResolver {
   constructor(private readonly reviewService: ReviewService) {}
 
-  @Query(() => PaginatedReviews, { name: 'reviews' })
+  @Query(() => PaginatedReview, { name: 'reviews' })
   async reviews(
-    @Args('filter', { nullable: true }) filter?: ReviewsFilterInput,
+    @Args('filter', { nullable: true }) filter?: ReviewFilterInput,
     @Args('pagination', { nullable: true }) pagination?: PaginationInput,
-    @Args('orderBy', { nullable: true }) orderBy?: ReviewsOrderInput,
-  ): Promise<PaginatedReviews> {
+    @Args('orderBy', { nullable: true }) orderBy?: ReviewOrderInput,
+  ): Promise<PaginatedReview> {
     return this.reviewService.findMany(undefined, {
       where: filter,
       orderBy: orderBy,

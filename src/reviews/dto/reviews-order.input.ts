@@ -24,7 +24,7 @@ registerEnumType(SortOrder, {
  * ```
  */
 @InputType()
-export class ReviewsOrderInput {
+export class ReviewOrderInput {
   @Field(() => SortOrder, { nullable: true })
   @IsEnum(SortOrder)
   @IsOptional()

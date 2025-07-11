@@ -1,12 +1,8 @@
-import { CACHE_MANAGER, CacheInterceptor } from '@nestjs/cache-manager';
-import {
-  BadRequestException,
-  ValidationPipe,
-  VersioningType,
-} from '@nestjs/common';
+import { VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { NestFactory, Reflector } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { useContainer } from 'class-validator';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import { Request, Response } from 'express';
@@ -15,7 +11,7 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { GlobalInterceptor } from './common/interceptors/global.interceptor';
-import { LoggerService } from './common/logger/logger.service';
+import { LoggerService } from './common/loggers/logger.service';
 
 async function bootstrap() {
   try {
@@ -45,35 +41,11 @@ async function bootstrap() {
 
     app.use(cookieParser());
 
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-        transformOptions: {
-          enableImplicitConversion: true,
-        },
-        exceptionFactory: (errors) => {
-          const result = errors.map((error) => ({
-            property: error.property,
-            message: error.constraints
-              ? Object.values(error.constraints)[0]
-              : 'Validation failed',
-          }));
-          return new BadRequestException({
-            message: 'Validation failed',
-            errors: result,
-          });
-        },
-      }),
-    );
+    useContainer(app.select(AppModule), { fallbackOnErrors: true });
     // Global filters
-    app.useGlobalFilters(new GlobalExceptionFilter());
+    app.useGlobalFilters(app.get(GlobalExceptionFilter));
     // Global interceptors
-    app.useGlobalInterceptors(
-      app.get(GlobalInterceptor),
-      new CacheInterceptor(app.get(CACHE_MANAGER), app.get(Reflector)),
-    );
+    app.useGlobalInterceptors(app.get(GlobalInterceptor));
     app.enableVersioning({
       type: VersioningType.URI,
       defaultVersion: '1',

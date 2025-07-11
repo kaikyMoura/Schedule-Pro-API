@@ -8,23 +8,15 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes } from 'crypto';
 import { User } from 'prisma/app/generated/prisma/client';
-import { HashingService } from 'src/hashing/hashing.service';
-import { NotificationService } from 'src/notification/notification.service';
-import { CreateUserInput } from 'src/user/dtos/create-user.input';
-import { LoginUserInput } from 'src/user/dtos/login-user.input';
-import { UserType } from 'src/user/type/user.entity';
-import { UserSessionService } from '../user-session/user-session.service';
-import { UserService } from '../user/user.service';
+import { HashingService } from 'src/hashings/hashing.service';
+import { NotificationService } from 'src/notifications/notification.service';
+import { CreateUserInput } from 'src/users/dtos/create-user.input';
+import { LoginUserInput } from 'src/users/dtos/login-user.input';
+import { UserSessionService } from '../user-sessions/user-session.service';
+import { UserService } from '../users/user.service';
 import { TokenService } from './token.service';
-
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-}
-export interface LoginResponse extends AuthTokens {
-  user: UserType;
-}
+import { AuthTokens } from './types/auth-tokens-interface';
+import { LoginResponse } from './types/login-response.type';
 
 @Injectable()
 export class AuthService {
@@ -125,14 +117,29 @@ export class AuthService {
 
     const tokens = await this.generateTokens(user, tempSession.id);
 
+    console.log('🔑 Generated tokens:', {
+      accessToken: tokens.accessToken ? 'present' : 'missing',
+      refreshToken: tokens.refreshToken ? 'present' : 'missing',
+      expiresIn: tokens.expiresIn,
+    });
+
     await this.userSessionService.update(tempSession.id, {
       refreshToken: tokens.refreshToken,
     });
 
-    return {
+    const response = {
       ...tokens,
       user: this.userService.toUserType(user),
     };
+
+    console.log('📤 Login response:', {
+      user: response.user ? 'present' : 'missing',
+      accessToken: response.accessToken ? 'present' : 'missing',
+      refreshToken: response.refreshToken ? 'present' : 'missing',
+      expiresIn: response.expiresIn,
+    });
+
+    return response;
   }
 
   async refreshToken(refreshToken: string): Promise<AuthTokens> {
