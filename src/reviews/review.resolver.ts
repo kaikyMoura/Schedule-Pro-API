@@ -8,10 +8,14 @@ import { ReviewService } from './review.service';
 import { PaginatedReview } from './types/paginated-review.type';
 import { ReviewsResponse } from './types/review-response.type';
 import { ReviewType } from './types/review.type';
+import { PubsubService } from 'src/google/pubsub/pubsub.service';
 
 @Resolver(ReviewType)
 export class ReviewResolver {
-  constructor(private readonly reviewService: ReviewService) {}
+  constructor(
+    private readonly reviewService: ReviewService,
+    private readonly pubsubService: PubsubService,
+  ) {}
 
   @Query(() => PaginatedReview, { name: 'reviews' })
   async reviews(
@@ -45,6 +49,8 @@ export class ReviewResolver {
     @Args('input') input: CreateReviewInput,
   ): Promise<ReviewsResponse> {
     const review = await this.reviewService.create(input);
+    this.pubsubService.publishMessage('addReview-sub', JSON.stringify(review));
+
     return {
       success: true,
       message: `Review created successfully`,

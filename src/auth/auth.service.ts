@@ -132,12 +132,6 @@ export class AuthService {
       ...tokens,
     };
 
-    console.log('📤 Login response:', {
-      accessToken: response.accessToken ? 'present' : 'missing',
-      refreshToken: response.refreshToken ? 'present' : 'missing',
-      expiresIn: response.expiresIn,
-    });
-
     return response;
   }
 
@@ -309,7 +303,17 @@ export class AuthService {
     await this.notificationService.sendMail({
       to: user.email,
       subject: 'Confirm your email address',
-      text: `Please click the link below to verify your email address: ${verificationToken}`,
+      html: `
+            <p>Hello ${user.firstName},</p>
+            <p>You need to verify your email.</p>
+            <br />
+            <p>Please click the link below to verify your email:</p>
+            <p><a href="${verificationToken}">Verify Email</a></p>
+            <br />
+            <p>This link will expire in 1 hour.</p>
+            <br />
+            <p>If you did not request this, please ignore this email.</p>
+        `,
     });
   }
 

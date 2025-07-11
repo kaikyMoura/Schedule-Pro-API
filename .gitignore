@@ -55,7 +55,12 @@ pids
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
+# Scripts
 *.bat
 *.sh
 
+# TODO
 TODO.md
+
+# Credentials
+credentials.json

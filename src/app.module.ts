@@ -38,6 +38,7 @@ import { GlobalInterceptor } from './common/interceptors/global.interceptor';
 import { LoggerModule } from './common/loggers/logger.module';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 import { CustomRequest } from './common/types/custom-request';
+import { GoogleModule } from './google/google.module';
 import { HashingModule } from './hashings/hashing.module';
 import { NotificationModule } from './notifications/notification.module';
 import { ReviewModule } from './reviews/review.module';
@@ -196,6 +197,7 @@ import { UserService } from './users/user.service';
     HashingModule,
     ReviewModule,
     NotificationModule,
+    GoogleModule,
   ],
   controllers: [AppController],
   providers: [
