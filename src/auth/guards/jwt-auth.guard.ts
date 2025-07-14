@@ -1,22 +1,25 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { GqlExecutionContext } from '@nestjs/graphql';
 import { AuthGuard } from '@nestjs/passport';
-import { IS_PUBLIC_KEY } from 'src/common/decorators/public.decorator';
+import { Observable } from 'rxjs';
+import { CustomRequest } from 'src/common/types/custom-request';
 
 @Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') implements CanActivate {
+export class JwtAuthGuard extends AuthGuard('jwt') {
   constructor(private reflector: Reflector) {
     super();
   }
 
   /**
-   * If the route is public, allow the request to pass through.
-   * Otherwise, use the base AuthGuard to check the JWT.
+   * Check if the route is public.
    * @param context the execution context of the request
-   * @returns true if the request is valid, false otherwise
+   * @returns true if the route is public, false otherwise
    */
-  canActivate(context: ExecutionContext) {
-    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+  canActivate(
+    context: ExecutionContext,
+  ): Observable<boolean> | Promise<boolean> | boolean {
+    const isPublic = this.reflector.getAllAndOverride<boolean>('isPublic', [
       context.getHandler(),
       context.getClass(),
     ]);
@@ -24,5 +27,15 @@ export class JwtAuthGuard extends AuthGuard('jwt') implements CanActivate {
       return true;
     }
     return super.canActivate(context);
+  }
+
+  /**
+   * Get the request object from the context.
+   * @param context the execution context of the request
+   * @returns the request object
+   */
+  getRequest(context: ExecutionContext): CustomRequest {
+    const ctx = GqlExecutionContext.create(context);
+    return ctx.getContext<{ req: CustomRequest }>().req;
   }
 }

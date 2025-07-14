@@ -30,34 +30,77 @@ The `Appointment` module manages bookings between users (customers and staff) an
 
 ### Create Appointment
 ```graphql
-mutation {
-  createAppointment(input: {
-    notes: "This is a note",
-    date: "2023-06-01",
-    time: "10:00",
-    status: PENDING, # Optional, default: PENDING
-    price: 100.0,
-    customerId: "uuid-of-customer",
-    staffId: "uuid-of-staff",
-    serviceId: "uuid-of-service"
-  }) {
-    id
-    status
-    date
-    time
-    price
-    customer {
+mutation CreateAppointment($input: CreateAppointmentInput!) {
+  createAppointment(input: $input) {
+    success
+    message
+    error
+    data {
       id
-      name
+      currency
+      discount
+      endTime
+      finalPrice
+      notes
+      price
+      scheduledDate
+      scheduledTime
+      startTime
+      status
+      timezone
+      type
+      createdAt
+      updatedAt
     }
-    staff {
-      id
-      name
-    }
-    service {
-      id
-      name
-    }
+  }
+}
+```
+
+### Variables Example
+```json
+{
+  "input": {
+    "currency": "USD",
+    "customerId": "uuid-of-customer",
+    "discount": 0,
+    "endTime": "2024-01-15T11:00:00Z",
+    "finalPrice": 100.0,
+    "notes": "This is a note",
+    "price": 100.0,
+    "scheduledDate": "2024-01-15T00:00:00Z",
+    "scheduledTime": "10:00",
+    "serviceId": "uuid-of-service",
+    "staffId": "uuid-of-staff",
+    "startTime": "2024-01-15T10:00:00Z",
+    "status": "PENDING",
+    "timezone": "America/New_York",
+    "type": "REGULAR"
+  }
+}
+```
+
+### Success Response
+```json
+{
+  "success": true,
+  "message": "Appointment created successfully",
+  "error": null,
+  "data": {
+    "id": "appointment-id",
+    "currency": "USD",
+    "discount": 0,
+    "endTime": "2024-01-15T11:00:00Z",
+    "finalPrice": 100.0,
+    "notes": "This is a note",
+    "price": 100.0,
+    "scheduledDate": "2024-01-15T00:00:00Z",
+    "scheduledTime": "10:00",
+    "startTime": "2024-01-15T10:00:00Z",
+    "status": "PENDING",
+    "timezone": "America/New_York",
+    "type": "REGULAR",
+    "createdAt": "2024-01-15T09:30:00Z",
+    "updatedAt": "2024-01-15T09:30:00Z"
   }
 }
 ```

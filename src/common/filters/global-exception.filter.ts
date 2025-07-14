@@ -11,6 +11,8 @@ import {
 import { GqlArgumentsHost, GqlContextType } from '@nestjs/graphql';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { Request, Response } from 'express';
+import { CustomRequest } from '../types/custom-request';
+import { CustomResponse } from '../types/custom-response';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -19,8 +21,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     if (host.getType() === 'http') {
       const ctx = host.switchToHttp();
-      const response = ctx.getResponse<Response>();
-      const request = ctx.getRequest<Request>();
+      const response = ctx.getResponse<CustomResponse>();
+      const request = ctx.getRequest<CustomRequest>();
 
       let status = HttpStatus.INTERNAL_SERVER_ERROR;
       let message = 'Internal server error';
@@ -76,6 +78,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         `${request.method} ${request.url} - ${status} - ${message}`,
         exception instanceof Error ? exception.stack : 'Unknown error',
       );
+
       response.status(status).json(errorResponse);
     } else if (host.getType<GqlContextType>() === 'graphql') {
       const gqlHost = GqlArgumentsHost.create(host);

@@ -8,6 +8,7 @@ import { Reflector } from '@nestjs/core';
 import { Role } from 'prisma/app/generated/prisma/client';
 import { ROLES_KEY } from 'src/users/decorators/role.decorator';
 import { CustomRequest } from '../../common/types/custom-request';
+import { GqlExecutionContext } from '@nestjs/graphql';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -22,7 +23,7 @@ export class RolesGuard implements CanActivate {
     if (!requiredRoles) {
       return true;
     }
-    const request = context.switchToHttp().getRequest<CustomRequest>();
+    const request = this.getRequest(context);
     const user = request.user;
 
     if (!user) {
@@ -38,5 +39,10 @@ export class RolesGuard implements CanActivate {
     }
 
     return true;
+  }
+
+  private getRequest(context: ExecutionContext): CustomRequest {
+    const ctx = GqlExecutionContext.create(context);
+    return ctx.getContext<{ req: CustomRequest }>().req;
   }
 }

@@ -23,6 +23,7 @@ export class GlobalGuard implements CanActivate {
     if (!isRateLimited) return false;
 
     const isAuthenticated = await this.jwtGuard.canActivate(context);
+    console.log('isAuthenticated:', isAuthenticated);
     if (!isAuthenticated) return false;
 
     return this.rolesGuard.canActivate(context);

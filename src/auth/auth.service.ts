@@ -222,6 +222,7 @@ export class AuthService {
     sessionId: string,
   ): Promise<AuthTokens> {
     const payload = {
+      id: user.id,
       sub: user.id,
       email: user.email,
       role: user.role,

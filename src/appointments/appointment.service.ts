@@ -17,6 +17,7 @@ import { ServiceItemService } from 'src/service-items/service-item.service';
 import { RoleSpecification } from 'src/users/specs/role.spec';
 import { UserService } from 'src/users/user.service';
 import { AppointmentRepository } from './appointment.repository';
+import { CreateAppointmentInput } from './dtos/create-appointment.input';
 import { UpdateAppointmentInput } from './dtos/update-appointment.input';
 import { AppointmentType } from './types/appointment.entity';
 
@@ -146,13 +147,11 @@ export class AppointmentService {
    * @throws {HttpException} - Thrown if the user with the given id is not a staff.
    * @throws {BadRequestException} - Thrown if no staff is available at the given time.
    */
-  async create(
-    appointment: Prisma.AppointmentCreateInput,
-  ): Promise<Appointment> {
+  async create(appointment: CreateAppointmentInput): Promise<Appointment> {
     if (
-      !appointment.customer ||
-      !appointment.service ||
-      !appointment.staff ||
+      !appointment.customerId ||
+      !appointment.serviceId ||
+      !appointment.staffId ||
       !appointment.scheduledDate ||
       !appointment.scheduledTime
     ) {
@@ -160,7 +159,7 @@ export class AppointmentService {
     }
 
     let staffName = '';
-    let selectedStaffId = appointment.staff?.connect?.id;
+    let selectedStaffId = appointment.staffId;
 
     if (selectedStaffId && selectedStaffId !== 'any') {
       const staffResponse = await this.userService.findById(selectedStaffId);
@@ -190,10 +189,24 @@ export class AppointmentService {
       staffName = `${availableStaff?.firstName} ${availableStaff?.lastName}`;
     }
 
+    const { customerId, serviceId, staffId, ...rest } = appointment;
+
     const newAppointment = await this.appointmentRepository.create({
-      ...appointment,
+      ...rest,
+      customer: {
+        connect: {
+          id: customerId,
+        },
+      },
+      service: {
+        connect: {
+          id: serviceId,
+        },
+      },
       staff: {
-        connect: { id: selectedStaffId },
+        connect: {
+          id: staffId,
+        },
       },
     });
 
@@ -205,8 +218,14 @@ export class AppointmentService {
       throw new NotFoundException('Service not found');
     }
 
+    const customer = await this.userService.findById(newAppointment.customerId);
+
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
     await this.notificationService.sendMail({
-      to: appointment.customer.connect!.email!,
+      to: customer?.email,
       from: 'Schedule Pro',
       subject: 'New Appointment',
       html: `<h1>New Appointment</h1>

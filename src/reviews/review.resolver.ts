@@ -1,14 +1,14 @@
 import { NotFoundException } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { PaginationInput } from 'src/common/types/pagination.input';
-import { CreateReviewInput } from './dto/create-review-input';
-import { ReviewFilterInput } from './dto/reviews-filter.input';
-import { ReviewOrderInput } from './dto/reviews-order.input';
+import { PubsubService } from 'src/google/pubsub/pubsub.service';
+import { CreateReviewInput } from './dtos/create-review-input';
+import { ReviewFilterInput } from './dtos/reviews-filter.input';
+import { ReviewOrderInput } from './dtos/reviews-order.input';
 import { ReviewService } from './review.service';
 import { PaginatedReview } from './types/paginated-review.type';
 import { ReviewsResponse } from './types/review-response.type';
 import { ReviewType } from './types/review.type';
-import { PubsubService } from 'src/google/pubsub/pubsub.service';
 
 @Resolver(ReviewType)
 export class ReviewResolver {
@@ -49,6 +49,7 @@ export class ReviewResolver {
     @Args('input') input: CreateReviewInput,
   ): Promise<ReviewsResponse> {
     const review = await this.reviewService.create(input);
+
     this.pubsubService.publishMessage('addReview-sub', JSON.stringify(review));
 
     return {

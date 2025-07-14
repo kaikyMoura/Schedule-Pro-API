@@ -39,14 +39,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(
     payload: TokenPayloadInput,
   ): Promise<{ id: string; email: string }> {
-    const user = await this.userService.findById(payload.sub);
-
-    if (payload.email !== user.email) {
+    const userId = payload.id;
+    if (!userId) {
+      throw new UnauthorizedException('Invalid token');
+    }
+    const user = await this.userService.findById(userId);
+    if (!user || payload.email !== user.email) {
       throw new UnauthorizedException('Invalid or expired token');
     }
-
-    if (!user) throw new UnauthorizedException('Invalid or expired token');
-
     return { id: user.id, email: user.email };
   }
 }

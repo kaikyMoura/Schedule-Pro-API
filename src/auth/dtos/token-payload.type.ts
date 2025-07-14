@@ -4,6 +4,9 @@ import { Role } from 'prisma/app/generated/prisma/client';
 @InputType()
 export class TokenPayloadInput {
   @Field(() => String, { nullable: false })
+  id: string;
+
+  @Field(() => String, { nullable: false })
   sub: string;
 
   @Field(() => String, { nullable: false })

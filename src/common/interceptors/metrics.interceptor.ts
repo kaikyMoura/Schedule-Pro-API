@@ -10,6 +10,7 @@ import { Request, Response } from 'express';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { CustomRequest } from '../types/custom-request';
+import { CustomResponse } from '../types/custom-response';
 
 interface RequestMetrics {
   method: string;
@@ -47,11 +48,11 @@ export class MetricsInterceptor implements NestInterceptor {
     try {
       if (contextType === 'http') {
         const request = context.switchToHttp().getRequest<CustomRequest>();
-        const response = context.switchToHttp().getResponse<Response>();
+        const response = context.switchToHttp().getResponse<CustomResponse>();
 
         method = request.method;
         route = request.route?.path ?? request.originalUrl;
-        statusCode = response.statusCode;
+        statusCode = response.status as unknown as number;
         userAgent = request.headers['user-agent'];
         userId = request.user?.sub;
       } else if (contextType === 'graphql') {

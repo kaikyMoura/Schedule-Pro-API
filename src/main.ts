@@ -5,7 +5,6 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { useContainer } from 'class-validator';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
-import { Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
@@ -103,15 +102,6 @@ async function bootstrap() {
       logger.log(`📚 Swagger documentation available at
 http://localhost:${port}/api/docs`);
     }
-    // Health check endpoint
-    app.getHttpAdapter().get('/health', (req: Request, res: Response) => {
-      res.status(200).json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: nodeEnv,
-      });
-    });
 
     app.enableShutdownHooks();
 

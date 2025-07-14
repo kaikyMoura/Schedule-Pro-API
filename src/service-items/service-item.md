@@ -29,17 +29,39 @@ The `ServiceItem` module defines the catalog of services offered in the applicat
 ```graphql
 mutation {
   createServiceItem(input: {
-    type: "HAIRCUT",
-    price: 50.0,
-    duration: 30
+    name: "Haircut",
+    description: "Haircut description",
+    category: "HAIRCUT",
+    basePrice: 50.0,
+    currency: "BRL",
+    durationMinutes: 30,
+    bufferMinutes: 5,
+    isActive: true,
+    isOnline: false,
+    maxAdvanceBooking: 30,      # Optional
+    minAdvanceBooking: 1,       # Optional
+    color: "#FFAA00",           # Optional
+    icon: "scissors",           # Optional
+    tags: ["barber", "hair"]    # Optional
   }) {
     success
     message
     data {
       id
-      type
-      price
-      duration
+      name
+      description
+      category
+      basePrice
+      currency
+      durationMinutes
+      bufferMinutes
+      isActive
+      isOnline
+      maxAdvanceBooking
+      minAdvanceBooking
+      color
+      icon
+      tags
     }
   }
 }

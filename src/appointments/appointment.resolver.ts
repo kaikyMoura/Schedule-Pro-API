@@ -1,8 +1,5 @@
-import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Status } from 'prisma/app/generated/prisma/client';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { AppointmentService } from './appointment.service';
 import { AppointmentFilterInput } from './dtos/appointment-filter.input';
 import { AppointmentOrderInput } from './dtos/appointment-order.input';
@@ -14,7 +11,6 @@ import { AppointmentType } from './types/appointment.entity';
 import { PaginatedAppointments } from './types/paginated-appointments.type';
 
 @Resolver(AppointmentType)
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class AppointmentResolver {
   constructor(private readonly appointmentService: AppointmentService) {}
 
@@ -71,24 +67,7 @@ export class AppointmentResolver {
   async createAppointment(
     @Args('input') input: CreateAppointmentInput,
   ): Promise<AppointmentResponse> {
-    const appointment = await this.appointmentService.create({
-      ...input,
-      customer: {
-        connect: {
-          id: input.customerId,
-        },
-      },
-      service: {
-        connect: {
-          id: input.serviceId,
-        },
-      },
-      staff: {
-        connect: {
-          id: input.staffId,
-        },
-      },
-    });
+    const appointment = await this.appointmentService.create(input);
 
     return {
       success: true,

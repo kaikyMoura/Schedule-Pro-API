@@ -10,7 +10,6 @@ import { GraphQLValidationInterceptor } from './interceptors/graphql-validation.
 import { LoggerInterceptor } from './interceptors/logger.interceptor';
 import { MetricsInterceptor } from './interceptors/metrics.interceptor';
 import { ResponseInterceptor } from './interceptors/response.interceptor';
-import { LoggerMiddleware } from './middlewares/logger.middleware';
 
 @Module({
   imports: [PrismaModule, ConfigModule],
@@ -21,7 +20,6 @@ import { LoggerMiddleware } from './middlewares/logger.middleware';
     AuditInterceptor,
     MetricsInterceptor,
     ResponseInterceptor,
-    LoggerMiddleware,
     CustomThrottlerGuard,
     GraphQLValidationInterceptor,
     CacheInterceptor,
@@ -33,7 +31,6 @@ import { LoggerMiddleware } from './middlewares/logger.middleware';
     AuditInterceptor,
     MetricsInterceptor,
     ResponseInterceptor,
-    LoggerMiddleware,
     CustomThrottlerGuard,
     GraphQLValidationInterceptor,
     CacheInterceptor,

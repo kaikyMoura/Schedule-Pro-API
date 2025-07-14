@@ -1,13 +1,30 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, Review } from 'prisma/app/generated/prisma/client';
+import { ToxicContentException } from 'src/common/exceptions/toxic-content.exception';
 import { Specification } from 'src/common/specs/specification.interface';
-import { CreateReviewInput } from './dto/create-review-input';
+import { AiService } from 'src/google/ai/ai.service';
+import { CreateReviewInput } from './dtos/create-review-input';
 import { ReviewRepository } from './review.repository';
 import { ReviewType } from './types/review.type';
+import { ToxicityAnalysisResult } from './types/toxicity-limits.type';
 
 @Injectable()
 export class ReviewService {
-  constructor(private readonly reviewRepository: ReviewRepository) {}
+  private readonly toxicityLimits: Record<string, number> = {
+    TOXICITY: 0.6,
+    SEVERE_TOXICITY: 0.6,
+    IDENTITY_ATTACK: 0.6,
+    INSULT: 0.6,
+    PROFANITY: 0.6,
+    THREAT: 0.6,
+    SEXUALLY_EXPLICIT: 0.5,
+    FLIRTATION: 0.5,
+  };
+
+  constructor(
+    private readonly reviewRepository: ReviewRepository,
+    private readonly aiService: AiService,
+  ) {}
 
   /**
    * Converts a Review object to a ReviewType object.
@@ -76,11 +93,67 @@ export class ReviewService {
   }
 
   /**
-   * Creates a review.
+   * Validates the toxicity of review content using Google's Perspective API.
+   * @param text - The text content to validate (title + comment).
+   * @returns True if the content passes toxicity validation, false otherwise.
+   * @throws ToxicContentException if the content exceeds toxicity limits.
+   */
+  private async validateToxicity(text: string): Promise<boolean> {
+    if (!text || text.trim().length === 0) {
+      return true;
+    }
+
+    try {
+      const analysis = (await this.aiService.analyzeToxicity(
+        text,
+      )) as ToxicityAnalysisResult;
+
+      console.log('Analysis:', analysis);
+
+      if (!analysis?.attributeScores) {
+        throw new Error('Invalid response from toxicity analysis');
+      }
+
+      // Blocks if the score is greater than the limit
+      for (const [attribute, score] of Object.entries(
+        analysis.attributeScores,
+      )) {
+        const limit = this.toxicityLimits[attribute] ?? 0.6;
+        if (score && score.summaryScore.value > limit) {
+          console.log(
+            `${attribute}: ${score.summaryScore.value} (limite: ${limit})`,
+          );
+          throw new ToxicContentException(
+            `Content exceeds ${attribute.toLowerCase()} limit (${score.summaryScore.value.toFixed(2)} > ${limit})`,
+          );
+        }
+      }
+
+      return true;
+    } catch (error) {
+      if (error instanceof ToxicContentException) {
+        throw error;
+      }
+      console.error('Toxicity analysis failed:', error);
+      throw new Error('Toxicity analysis failed');
+    }
+  }
+
+  /**
+   * Creates a review after validating its content for toxicity.
    * @param data - The data for creating a review.
    * @returns The created review.
+   * @throws ToxicContentException if the content exceeds toxicity limits.
    */
   async create(data: CreateReviewInput): Promise<Review> {
+    // Combine title and comment for toxicity analysis
+    const contentToAnalyze = [data.title, data.comment]
+      .filter(Boolean)
+      .join(' ');
+
+    // Validate toxicity before creating the review
+    await this.validateToxicity(contentToAnalyze);
+
     return this.reviewRepository.create({
       data: {
         ...data,

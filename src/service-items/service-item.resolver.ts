@@ -6,11 +6,13 @@ import {
   ResolveField,
   Resolver,
 } from '@nestjs/graphql';
+import { Role } from 'prisma/app/generated/prisma/client';
 import { AppointmentType } from 'src/appointments/types/appointment.entity';
 import { PaginationInput } from 'src/common/types/pagination.input';
-import { ServiceItemDataLoader } from 'src/service-items/dataloaders/service-item.loader';
 import { ReviewType } from 'src/reviews/types/review.type';
+import { ServiceItemDataLoader } from 'src/service-items/dataloaders/service-item.loader';
 import { StaffServiceType } from 'src/staff-services/types/staff-service.type';
+import { Roles } from 'src/users/decorators/role.decorator';
 import { UserType } from 'src/users/types/user.type';
 import { CreateServiceItemInput } from './dtos/create-service-item.input';
 import { ServiceItemOrderInput } from './dtos/service-item-order.input';
@@ -20,7 +22,6 @@ import { PaginatedServiceItem } from './types/paginated-service-item.type';
 import { ServiceItemFilterInput } from './types/service-item-filter.input';
 import { ServiceItemResponse } from './types/service-item-response.type';
 import { ServiceItemType } from './types/service-item.entity';
-
 @Resolver(() => ServiceItemType)
 export class ServiceItemResolver {
   constructor(
@@ -72,15 +73,17 @@ export class ServiceItemResolver {
     return this.serviceItemService.toServiceItemType(serviceItem!);
   }
 
+  @Roles(Role.ADMIN, Role.STAFF)
   @Mutation(() => ServiceItemResponse, { name: 'createServiceItem' })
   async createServiceItem(
     @Args('input') input: CreateServiceItemInput,
   ): Promise<ServiceItemResponse> {
-    await this.serviceItemService.create(input);
+    const serviceItem = await this.serviceItemService.create(input);
 
     return {
       success: true,
       message: 'Service item created successfully',
+      data: this.serviceItemService.toServiceItemType(serviceItem),
     };
   }
 

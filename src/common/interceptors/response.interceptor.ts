@@ -6,9 +6,9 @@ import {
   Logger,
 } from '@nestjs/common';
 import { GqlContextType, GqlExecutionContext } from '@nestjs/graphql';
-import { Request } from 'express';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { CustomRequest } from '../types/custom-request';
 
 export interface Response<T> {
   success: boolean;
@@ -39,7 +39,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
 
     try {
       if (contextType === 'http') {
-        const request = context.switchToHttp().getRequest<Request>();
+        const request = context.switchToHttp().getRequest<CustomRequest>();
         path = request.url;
         method = request.method;
       } else if (contextType === 'graphql') {

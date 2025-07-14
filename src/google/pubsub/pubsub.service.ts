@@ -8,9 +8,7 @@ export class PubsubService implements OnModuleInit {
   private subscription: Subscription;
 
   constructor() {
-    this.pubSubClient = new PubSub({
-      keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-    });
+    this.pubSubClient = new PubSub();
   }
 
   onModuleInit() {

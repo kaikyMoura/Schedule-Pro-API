@@ -1,6 +1,6 @@
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { CacheModule } from '@nestjs/cache-manager';
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { GraphQLModule } from '@nestjs/graphql';
@@ -36,7 +36,6 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 import { GlobalGuard } from './common/guards/global.guard';
 import { GlobalInterceptor } from './common/interceptors/global.interceptor';
 import { LoggerModule } from './common/loggers/logger.module';
-import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 import { CustomRequest } from './common/types/custom-request';
 import { GoogleModule } from './google/google.module';
 import { HashingModule } from './hashings/hashing.module';
@@ -54,8 +53,8 @@ import { UserService } from './users/user.service';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true,
-      cache: true,
+      isGlobal: false,
+      cache: false,
       expandVariables: true,
       load: [databaseConfig, jwtConfig, cacheConfig, graphqlConfig],
       validationSchema: Joi.object({
@@ -107,14 +106,15 @@ import { UserService } from './users/user.service';
     CacheModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      isGlobal: true,
+      isGlobal: process.env.NODE_ENV !== 'test' ? true : false,
       useFactory: (configService: ConfigService) => {
+        const redisUrl = configService.get<string>('REDIS_URL');
         return {
-          stores: [
-            new KeyvRedis(configService.get<string>('REDIS_URL'), {
-              connectionTimeout: 1000,
-            }),
-          ],
+          store: redisUrl
+            ? new KeyvRedis(redisUrl, {
+                connectionTimeout: 1000,
+              })
+            : undefined,
         };
       },
     }),
@@ -161,22 +161,42 @@ import { UserService } from './users/user.service';
             userService,
           ).createServiceItemLoader(),
         }),
-        formatError: (error) => {
+        formatError: (error: unknown) => {
+          const typedError = error as {
+            extensions?: {
+              code?: string;
+              exception?: { name?: string };
+              errors?: unknown[];
+            };
+            message?: string;
+          };
+
           if (
-            error.extensions?.code === 'VALIDATION_ERROR' ||
-            error.message.includes('Validation failed')
+            typedError.extensions?.code === 'VALIDATION_ERROR' ||
+            typedError.message?.includes('Validation failed') ||
+            typedError.extensions?.exception?.name === 'ToxicContentException'
           ) {
             return {
-              message: error.message,
-              code: error.extensions?.code || 'VALIDATION_ERROR',
-              errors: error.extensions?.errors || [],
+              message: typedError.message,
+              code: typedError.extensions?.code || 'VALIDATION_ERROR',
+              errors: typedError.extensions?.errors || [],
               timestamp: new Date().toISOString(),
             };
           }
 
+          if (
+            typedError.message?.includes('PrismaClient') ||
+            typedError.extensions?.exception?.name?.includes('Prisma')
+          ) {
+            return {
+              message: 'Internal server error',
+              code: 'INTERNAL_SERVER_ERROR',
+              timestamp: new Date().toISOString(),
+            };
+          }
           return {
-            message: error.message,
-            code: error.extensions?.code,
+            message: 'Internal server error',
+            code: typedError.extensions?.code || 'INTERNAL_SERVER_ERROR',
             timestamp: new Date().toISOString(),
           };
         },
@@ -216,8 +236,4 @@ import { UserService } from './users/user.service';
     },
   ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware).forRoutes('*');
-  }
-}
+export class AppModule {}

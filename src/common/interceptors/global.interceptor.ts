@@ -35,7 +35,12 @@ export class GlobalInterceptor implements NestInterceptor {
             this.metricsInterceptor.intercept(context, {
               handle: () =>
                 this.graphqlValidationInterceptor.intercept(context, {
-                  handle: () => this.cacheInterceptor.intercept(context, next),
+                  handle: () => {
+                    if (process.env.NODE_ENV !== 'test') {
+                      return this.cacheInterceptor.intercept(context, next);
+                    }
+                    return next.handle();
+                  },
                 }),
             }),
         }),

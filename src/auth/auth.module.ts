@@ -11,6 +11,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { TokenService } from './token.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { RolesGuard } from './guards/roles.guard';
   providers: [
     AuthResolver,
     AuthService,
+    ConfigService,
     TokenService,
     PrismaService,
     JwtStrategy,

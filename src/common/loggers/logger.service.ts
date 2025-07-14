@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Injectable } from '@nestjs/common';
 import { createLogger, format, transports } from 'winston';
 
@@ -11,7 +14,7 @@ export class LoggerService {
       format.json(),
     ),
     transports: [
-      new transports.File({ filename: 'logs/error.log', level: 'error' }),
+      new transports.File({ filename: 'logs/error.log' }),
       new transports.File({ filename: 'logs/combined.log' }),
     ],
   });
