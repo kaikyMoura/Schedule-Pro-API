@@ -49,6 +49,15 @@ The API includes robust authentication with JWT, role-based access control (RBAC
 - Email verification via SendGrid
 - Password reset functionality
 
+### 🗣️ Review Moderation & AI
+- AI-powered toxicity validation for reviews using Google Perspective API
+- Customizable toxicity thresholds for blocking offensive content
+- Secure error handling for review submissions
+
+### 🔔 Notifications & Pub/Sub
+- Google Cloud Pub/Sub integration for real-time event processing
+- Asynchronous review and appointment event handling
+
 ### 📊 Business Intelligence
 - Appointment analytics and reporting
 - Staff performance metrics
