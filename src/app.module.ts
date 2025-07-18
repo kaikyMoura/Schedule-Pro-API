@@ -50,6 +50,8 @@ import { StaffAvailabilityService } from './staff-availabilitys/staff-availabili
 import { StaffServiceService } from './staff-services/staff-service.service';
 import { UserDataLoader } from './users/dataloaders/user.loader';
 import { UserService } from './users/user.service';
+import { MemoryMonitor } from './common/utils/memory-monitor';
+import { MemoryMonitorTask } from './common/tasks/memory-monitor.task';
 
 @Module({
   imports: [
@@ -243,6 +245,8 @@ import { UserService } from './users/user.service';
   controllers: [AppController],
   providers: [
     AppService,
+    MemoryMonitor,
+    MemoryMonitorTask,
     {
       provide: APP_GUARD,
       useClass: GlobalGuard, //Using global guard because the nest ignores the other guards and uses the last especified guard

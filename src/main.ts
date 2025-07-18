@@ -11,6 +11,7 @@ import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { GlobalInterceptor } from './common/interceptors/global.interceptor';
 import { LoggerService } from './common/loggers/logger.service';
+import { MemoryMonitor } from './common/utils/memory-monitor';
 
 async function bootstrap() {
   try {
@@ -19,6 +20,12 @@ async function bootstrap() {
     const configService = app.get(ConfigService);
     const port = configService.get<number>('PORT', 5000);
     const nodeEnv = configService.get<string>('NODE_ENV', 'development');
+
+    const memoryMonitor = app.get(MemoryMonitor);
+    if (memoryMonitor) {
+      memoryMonitor.logMemoryUsageWithContext('APPLICATION_START');
+      memoryMonitor.logDetailedMemoryInfo();
+    }
 
     app.use(
       helmet({

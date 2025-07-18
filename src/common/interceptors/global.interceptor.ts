@@ -9,7 +9,9 @@ import { AuditInterceptor } from './audit.interceptor';
 import { CacheInterceptor } from './cache.interceptor';
 import { GraphQLValidationInterceptor } from './graphql-validation.interceptor';
 import { LoggerInterceptor } from './logger.interceptor';
+import { MemoryMonitorInterceptor } from './memory-monitor.interceptor';
 import { MetricsInterceptor } from './metrics.interceptor';
+import { ResponseInterceptor } from './response.interceptor';
 
 @Injectable()
 export class GlobalInterceptor implements NestInterceptor {
@@ -19,6 +21,8 @@ export class GlobalInterceptor implements NestInterceptor {
     private readonly metricsInterceptor: MetricsInterceptor,
     private readonly graphqlValidationInterceptor: GraphQLValidationInterceptor,
     private readonly cacheInterceptor: CacheInterceptor,
+    private readonly memoryMonitorInterceptor: MemoryMonitorInterceptor,
+    private readonly responseInterceptor: ResponseInterceptor<any>,
   ) {}
 
   /**
@@ -39,7 +43,10 @@ export class GlobalInterceptor implements NestInterceptor {
                     if (process.env.NODE_ENV !== 'test') {
                       return this.cacheInterceptor.intercept(context, next);
                     }
-                    return next.handle();
+                    return this.memoryMonitorInterceptor.intercept(
+                      context,
+                      next,
+                    );
                   },
                 }),
             }),
