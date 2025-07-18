@@ -63,10 +63,7 @@ export class UserRepository extends BaseRepository<User> {
    * @returns {Promise<boolean>} - A promise that resolves to `true` if the User exists, or `false` if not.
    */
   async exists(id: string): Promise<boolean> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: id },
-    });
-    return !!user;
+    return (await this.prisma.user.count({ where: { id } })) > 0;
   }
 
   /**

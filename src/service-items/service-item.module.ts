@@ -8,6 +8,8 @@ import { AppointmentModule } from 'src/appointments/appointment.module';
 import { ReviewModule } from 'src/reviews/review.module';
 import { StaffServiceModule } from 'src/staff-services/staff-service.module';
 import { UserModule } from 'src/users/user.module';
+import { PaymentModule } from 'src/payments/payment.module';
+import { StripeService } from 'src/payments/stripe/stripe.service';
 
 @Module({
   imports: [
@@ -15,6 +17,7 @@ import { UserModule } from 'src/users/user.module';
     forwardRef(() => AppointmentModule),
     forwardRef(() => ReviewModule),
     forwardRef(() => StaffServiceModule),
+    forwardRef(() => PaymentModule),
   ],
   providers: [
     ServiceItemService,
@@ -22,6 +25,7 @@ import { UserModule } from 'src/users/user.module';
     ServiceItemResolver,
     ServiceItemDataLoader,
     PrismaService,
+    StripeService,
   ],
   exports: [ServiceItemService],
 })

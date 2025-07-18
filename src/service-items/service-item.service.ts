@@ -1,7 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma, ServiceItem } from 'prisma/app/generated/prisma/client';
 import { MissingRequiredPropertiesException } from 'src/common/exceptions/missing-properties.exception';
 import { Specification } from 'src/common/specs/specification.interface';
+import { StripeService } from 'src/payments/stripe/stripe.service';
 import { CreateServiceItemInput } from './dtos/create-service-item.input';
 import { UpdateServiceItemInput } from './dtos/update-service-item.input';
 import { ServiceItemRepository } from './service-item.repository';
@@ -9,7 +14,10 @@ import { ServiceItemType } from './types/service-item.entity';
 
 @Injectable()
 export class ServiceItemService {
-  constructor(private readonly serviceItemRepository: ServiceItemRepository) {}
+  constructor(
+    private readonly serviceItemRepository: ServiceItemRepository,
+    private readonly stripeService: StripeService,
+  ) {}
 
   /**
    * Maps a ServiceItem entity to a ServiceItemType object.
@@ -103,12 +111,30 @@ export class ServiceItemService {
       );
     }
 
-    return await this.serviceItemRepository.create({
+    const createdServiceItem = await this.serviceItemRepository.create({
       data: {
         ...serviceItemInput,
         tags: serviceItemInput.tags ?? [],
       },
     });
+
+    if (!createdServiceItem) {
+      throw new BadRequestException('Failed to create service item');
+    }
+
+    const product = await this.stripeService.createProduct({
+      name: createdServiceItem.name,
+      description: createdServiceItem.description ?? '',
+      metadata: {
+        serviceItemId: createdServiceItem.id,
+      },
+    });
+
+    if (!product) {
+      throw new BadRequestException('Failed to create product');
+    }
+
+    return createdServiceItem;
   }
   /**
    * Deletes a ServiceItem from the database.
@@ -125,6 +151,8 @@ export class ServiceItemService {
     }
 
     await this.serviceItemRepository.delete(id);
+
+    await this.stripeService.deleteProduct(id);
   }
 
   /**

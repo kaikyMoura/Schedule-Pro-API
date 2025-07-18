@@ -40,6 +40,7 @@ import { CustomRequest } from './common/types/custom-request';
 import { GoogleModule } from './google/google.module';
 import { HashingModule } from './hashings/hashing.module';
 import { NotificationModule } from './notifications/notification.module';
+import { PaymentModule } from './payments/payment.module';
 import { ReviewModule } from './reviews/review.module';
 import { ReviewService } from './reviews/review.service';
 import { ServiceItemDataLoader } from './service-items/dataloaders/service-item.loader';
@@ -184,6 +185,24 @@ import { UserService } from './users/user.service';
             };
           }
 
+          const businessErrors = [
+            'NotFoundException',
+            'BadRequestException',
+            'MissingRequiredPropertiesException',
+          ];
+          if (
+            typedError.extensions?.exception?.name &&
+            businessErrors.includes(typedError.extensions.exception.name)
+          ) {
+            return {
+              message: typedError.message,
+              code:
+                typedError.extensions?.code ||
+                typedError.extensions?.exception?.name,
+              timestamp: new Date().toISOString(),
+            };
+          }
+
           if (
             typedError.message?.includes('PrismaClient') ||
             typedError.extensions?.exception?.name?.includes('Prisma')
@@ -194,6 +213,7 @@ import { UserService } from './users/user.service';
               timestamp: new Date().toISOString(),
             };
           }
+
           return {
             message: 'Internal server error',
             code: typedError.extensions?.code || 'INTERNAL_SERVER_ERROR',
@@ -218,6 +238,7 @@ import { UserService } from './users/user.service';
     ReviewModule,
     NotificationModule,
     GoogleModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [

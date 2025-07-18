@@ -21,6 +21,7 @@ import { LoginResponse } from './types/login-response.type';
 
 @Resolver(() => UserType)
 @UseGuards(JwtAuthGuard, RolesGuard)
+@UseInterceptors(GraphQLValidationInterceptor)
 export class AuthResolver {
   constructor(
     private readonly authService: AuthService,
@@ -28,7 +29,6 @@ export class AuthResolver {
   ) {}
 
   @Public()
-  @UseInterceptors(GraphQLValidationInterceptor)
   @Mutation(() => UserResponse, { name: 'register' })
   async register(@Args('input') input: CreateUserInput): Promise<UserResponse> {
     const user = await this.authService.register(input);
